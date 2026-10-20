@@ -63,6 +63,25 @@
   .big{font-size:34px;font-weight:800}
   .vs{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
   .note{color:var(--dim);font-size:12px;margin-top:12px;line-height:1.5}
+  .band{color:var(--dim);font-size:13px;margin-top:8px}
+  .band b{color:var(--ink)}
+  .why{background:#14263a;border:1px solid var(--acc2);border-radius:10px;
+    padding:12px 14px;margin-top:14px;font-size:15px;line-height:1.55}
+  .why b{color:var(--acc2)}
+  .why div + div{margin-top:6px}
+  .scores{margin-top:16px}
+  .score-row{display:flex;align-items:center;gap:10px;font-size:14px;margin:5px 0}
+  .score-row .nm{flex:0 0 48%}
+  .score-row .barwrap{flex:1;background:var(--panel2);border-radius:6px;height:12px;overflow:hidden}
+  .score-row .barfill{height:100%}
+  .score-row .pc{flex:0 0 44px;text-align:right;color:var(--dim)}
+  .strip{display:flex;gap:8px;margin-top:6px}
+  .strip .cell{flex:1;background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;padding:10px;text-align:center}
+  .strip .cell.cur{border-color:var(--acc)}
+  .strip .cell .s{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+  .strip .cell .v{font-size:19px;font-weight:700;margin-top:2px}
+  .strip .cell .f{font-size:11px;color:var(--dim)}
   .hidden{display:none}
   #fatal{background:#3b1620;border:1px solid var(--bad);color:#fecaca;border-radius:10px;
     padding:12px 14px;font-size:14px;margin-bottom:14px}
@@ -135,7 +154,7 @@ const D = window.GAP_DATA;
 if (!D) document.getElementById("fatal").classList.remove("hidden");
 // field indices in each profile array
 const F = {fs_in:0, fs_won:1, df:2, ss_won:3, rpw_fs:4, rpw_ss:5, matches:6, asof:7,
-           aces:8, dfs:9, win:10, ue:11, bpf:12, bps:13};
+           aces:8, dfs:9, win:10, ue:11, bpf:12, bps:13, n:14};
 let tour = "WTA";
 
 const $ = id => document.getElementById(id);
@@ -234,12 +253,44 @@ function matchWinProb(pA, pB, bestOf, firstA){
   }
   return rec(0, 0, firstA !== false);
 }
+function matchDist(pA, pB, bestOf){ // distribution over final set scores, keys "setsA-setsB"
+  const need = Math.ceil(bestOf/2), memo = {};
+  function rec(sa, sb, fa){
+    if (sa === need || sb === need){ const o = {}; o[sa+"-"+sb] = 1; return o; }
+    const k = sa+","+sb+","+(fa?1:0); if (k in memo) return memo[k];
+    const o = setOutcomes(pA, pB, fa), out = {};
+    const add = (sub, w) => { for (const key in sub) out[key] = (out[key]||0) + sub[key]*w; };
+    add(rec(sa+1, sb, fa), o.Ae); add(rec(sa+1, sb, !fa), o.Ao);
+    add(rec(sa, sb+1, fa), o.Be); add(rec(sa, sb+1, !fa), o.Bo);
+    memo[k] = out; return out;
+  }
+  return rec(0, 0, true);
+}
+function probBand(dA, dB, profA, profB, bo){
+  // One-sigma sensitivity band: nudge each duel by its sampling error,
+  // in the direction that hurts / helps player A, and recompute.
+  const nA = Math.max(60, profA[F.n] || 400), nB = Math.max(60, profB[F.n] || 400);
+  const nD = 2 / (1/nA + 1/nB);
+  const seA = Math.sqrt(dA.spw*(1-dA.spw)/nD), seB = Math.sqrt(dB.spw*(1-dB.spw)/nD);
+  const cp = x => Math.min(0.97, Math.max(0.05, x));
+  return {
+    lo: matchWinProb(cp(dA.spw - seA), cp(dB.spw + seB), bo, true),
+    hi: matchWinProb(cp(dA.spw + seA), cp(dB.spw - seB), bo, true),
+  };
+}
+function readLabel(mA, mB){
+  const m = Math.min(mA, mB);
+  if (m >= 40) return "Strong read — deep charted samples on both sides";
+  if (m >= 15) return "Decent read";
+  if (m >= 8) return "Thin data — lean on the range, not the point estimate";
+  return "Very thin data — wide range, light confidence";
+}
 /* ================= END CORE MATH ================= */
 
 function surface(){ return $("surface").value; }
-function getProfile(name){
+function getProfile(name, surf){
   if (!D || !name) return null;
-  const t = D.tours[tour], s = surface();
+  const t = D.tours[tour], s = surf || surface();
   if (t[s] && t[s][name]) return {p: t[s][name], fb: false};
   if (t["All"] && t["All"][name]) return {p: t["All"][name], fb: s !== "All"};
   return null;
@@ -388,6 +439,33 @@ function basicsHtml(p, name){
 }
 
 /* ---------- simulator view ---------- */
+function whyLines(na, nb, dA, dB){
+  const cands = [];
+  const holdA = gameWinProb(dA.spw), holdB = gameWinProb(dB.spw);
+  const ssWin = dA.pSs >= dB.pSs ? na : nb, ssLose = dA.pSs >= dB.pSs ? nb : na;
+  cands.push({k: "ss", score: Math.abs(dA.pSs - dB.pSs) / 0.08,
+    text: `Second serve is the fault line: ${ssWin} wins ${pct(Math.max(dA.pSs, dB.pSs))} of second-serve points in this matchup, ${ssLose} only ${pct(Math.min(dA.pSs, dB.pSs))}.`});
+  const fsWin = dA.pFs >= dB.pFs ? na : nb, fsLose = dA.pFs >= dB.pFs ? nb : na;
+  cands.push({k: "fs", score: Math.abs(dA.pFs - dB.pFs) / 0.08,
+    text: `First-strike gap: ${fsWin}'s first serve wins ${pct(Math.max(dA.pFs, dB.pFs))} of points against this return, ${fsLose}'s ${pct(Math.min(dA.pFs, dB.pFs))}.`});
+  const weakSs = Math.min(dA.pSs, dB.pSs);
+  if (weakSs < 0.46){
+    const weak = dA.pSs <= dB.pSs ? na : nb, hunter = dA.pSs <= dB.pSs ? nb : na;
+    cands.push({k: "target", score: (0.50 - weakSs) / 0.05,
+      text: `${weak}'s second serve is a target — ${hunter}'s return holds it to ${pct(weakSs)} of points won.`});
+  }
+  const dfWin = dA.dfPoint <= dB.dfPoint ? na : nb, dfLose = dA.dfPoint <= dB.dfPoint ? nb : na;
+  cands.push({k: "df", score: Math.abs(dA.dfPoint - dB.dfPoint) / 0.02,
+    text: `Double-fault leak: ${pct(Math.max(dA.dfPoint, dB.dfPoint))} of ${dfLose}'s service points end in a double fault, against ${pct(Math.min(dA.dfPoint, dB.dfPoint))} for ${dfWin}.`});
+  // Hold% is the summary stat — it aggregates every component, so it is
+  // demoted: it leads only when no single component gap stands out.
+  cands.push({k: "hold", score: 0.45 * Math.abs(holdA - holdB) / 0.10,
+    text: `${na} projects to hold ${pct(holdA)} of service games, ${nb} ${pct(holdB)}.`});
+  cands.sort((x, y) => y.score - x.score);
+  const lines = [cands[0].text];
+  if (cands[1] && cands[1].score > 0.75 && cands[1].k !== cands[0].k) lines.push(cands[1].text);
+  return lines;
+}
 function renderSim(){
   const out = $("simOut");
   if (!D){ out.innerHTML = ""; return; }
@@ -408,11 +486,40 @@ function renderSim(){
   const bo = parseInt($("bestof").value, 10);
   const pA = matchWinProb(dA.spw, dB.spw, bo, true);
   const wA = Math.max(4, Math.min(96, pA*100));
+  const band = probBand(dA, dB, ra.p, rb.p, bo);
+  const label = readLabel(ra.p[F.matches], rb.p[F.matches]);
+  const why = whyLines(na, nb, dA, dB).map(t => `<div>${t}</div>`).join("");
+  const dist = matchDist(dA.spw, dB.spw, bo);
+  const setWord = (winnerSets, loserSets) => {
+    if (bo === 3) return loserSets === 0 ? "in straight sets" : "in three sets";
+    return `in ${winnerSets + loserSets} sets`;
+  };
+  const scoreRows = Object.entries(dist)
+    .sort((x, y) => (x[0].split("-")[0] - y[0].split("-")[0]) || (x[0].split("-")[1] - y[0].split("-")[1]))
+    .map(([k, v]) => {
+      const [sa2, sb2] = k.split("-").map(Number);
+      const aWon = sa2 > sb2, nm = aWon ? na : nb;
+      return `<div class="score-row"><div class="nm">${nm} ${setWord(Math.max(sa2, sb2), Math.min(sa2, sb2))}</div>
+        <div class="barwrap"><div class="barfill" style="width:${Math.max(2, v*100)}%;background:${aWon ? "var(--acc)" : "var(--acc2)"}"></div></div>
+        <div class="pc">${pct0(v)}</div></div>`;
+    }).join("");
+  const strip = ["Hard", "Clay", "Grass"].map(s => {
+    const pa2 = getProfile(na, s), pb2 = getProfile(nb, s);
+    if (!pa2 || !pb2) return "";
+    const dd1 = duel(pa2.p, pb2.p, base), dd2 = duel(pb2.p, pa2.p, base);
+    const pp = matchWinProb(dd1.spw, dd2.spw, bo, true);
+    const fb = pa2.fb || pb2.fb;
+    return `<div class="cell ${surface() === s ? "cur" : ""}"><div class="s">${s}</div>
+      <div class="v">${pct0(pp)}</div><div class="f">${na.split(" ").pop()} win %${fb ? " *" : ""}</div></div>`;
+  }).join("");
   out.innerHTML = `
     <div class="vs"><div><div class="big" style="color:var(--acc)">${pct0(pA)}</div><div>${na}</div></div>
     <div style="text-align:right"><div class="big" style="color:var(--acc2)">${pct0(1-pA)}</div><div>${nb}</div></div></div>
     <div class="pbar"><div style="background:var(--acc);width:${wA}%">${pct0(pA)}</div>
     <div style="background:var(--acc2);width:${100-wA}%">${pct0(1-pA)}</div></div>
+    <div class="band">Likely range for ${na}: <b>${pct0(band.lo)}–${pct0(band.hi)}</b> · ${label}</div>
+    <div class="why"><b>The read:</b> ${why}</div>
+    <div class="scores"><div class="f" style="color:var(--dim);font-size:12px;margin-bottom:4px">MOST LIKELY SCORES</div>${scoreRows}</div>
     <table>
       <tr><th>When serving…</th><th>${na}</th><th>${nb}</th></tr>
       <tr><td>Hold %</td><td>${pct(gameWinProb(dA.spw))}</td><td>${pct(gameWinProb(dB.spw))}</td></tr>
@@ -421,6 +528,8 @@ function renderSim(){
       <tr><td>Double faults (% of own service pts)</td><td>${pct(dA.dfPoint)}</td><td>${pct(dB.dfPoint)}</td></tr>
       <tr><td>Service points won</td><td>${pct(dA.spw)}</td><td>${pct(dB.spw)}</td></tr>
     </table>
+    <div class="f" style="color:var(--dim);font-size:12px;margin-top:14px">SAME MATCHUP, OTHER SURFACES (* = all-surface profile used)</div>
+    <div class="strip">${strip}</div>
     <div class="fresh">${freshLine(na, ra)}<br>${freshLine(nb, rb)}<br>
     Surface: ${surface()} · Best of ${bo} · exact probability from the serve model (Player A serves first — swapping who serves first moves it by &lt;0.5 pt).</div>`;
 }
