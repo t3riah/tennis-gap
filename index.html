@@ -17,25 +17,44 @@
   .sub{color:var(--dim);font-size:13px;margin-bottom:16px}
   .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
   .seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
-  .seg button{background:var(--panel);color:var(--dim);border:0;padding:8px 16px;
-    font-size:14px;cursor:pointer}
+  .seg button{background:var(--panel);color:var(--dim);border:0;padding:10px 18px;
+    font-size:15px;cursor:pointer;min-height:44px}
   .seg button.on{background:var(--acc2);color:#fff;font-weight:600}
-  select,input[list]{background:var(--panel);color:var(--ink);border:1px solid var(--line);
-    border-radius:9px;padding:9px 10px;font-size:14px}
-  input[list]{width:100%}
+  select{background:var(--panel);color:var(--ink);border:1px solid var(--line);
+    border-radius:9px;padding:10px;font-size:16px;min-height:44px}
   .tabs{display:flex;gap:8px;margin:6px 0 14px}
   .tabs button{flex:1;background:var(--panel);color:var(--dim);border:1px solid var(--line);
-    border-radius:10px;padding:11px;font-size:15px;cursor:pointer}
+    border-radius:10px;padding:12px;font-size:15px;cursor:pointer;min-height:48px}
   .tabs button.on{background:var(--panel2);color:var(--ink);font-weight:600;border-color:var(--acc2)}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   @media(max-width:560px){.grid2{grid-template-columns:1fr}}
   label{font-size:12px;color:var(--dim);display:block;margin-bottom:5px}
+
+  /* --- autocomplete --- */
+  .ac{position:relative}
+  .ac input{width:100%;background:var(--panel2);color:var(--ink);border:1px solid var(--line);
+    border-radius:9px;padding:12px;font-size:16px;min-height:48px}
+  .ac input:focus{outline:2px solid var(--acc2);outline-offset:0}
+  .ac-list{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;
+    background:var(--panel2);border:1px solid var(--acc2);border-radius:10px;
+    max-height:264px;overflow-y:auto;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+  .ac-item{padding:12px 14px;font-size:16px;cursor:pointer;border-bottom:1px solid var(--line)}
+  .ac-item:last-child{border-bottom:0}
+  .ac-item:hover,.ac-item.sel{background:#27334f}
+  .ac-none{padding:12px 14px;font-size:14px;color:var(--dim)}
+
+  .go{display:block;width:100%;margin-top:14px;background:var(--acc);color:#08130c;
+    border:0;border-radius:10px;padding:14px;font-size:17px;font-weight:700;cursor:pointer;min-height:52px}
+  .go:active{filter:brightness(1.1)}
+  .go.blue{background:var(--acc2);color:#fff}
+
   table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
   th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right}
   th:first-child,td:first-child{text-align:left;color:var(--dim)}
   td.edge{color:var(--acc);font-weight:700}
   .fresh{color:var(--dim);font-size:12px;margin-top:10px}
+  .warn{color:var(--bad);font-size:14px;margin-top:10px}
   .basics{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:13px;color:var(--dim)}
   .basics b{color:var(--ink)}
   .pbar{display:flex;height:34px;border-radius:9px;overflow:hidden;margin:12px 0 4px;
@@ -45,12 +64,15 @@
   .vs{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
   .note{color:var(--dim);font-size:12px;margin-top:12px;line-height:1.5}
   .hidden{display:none}
+  #fatal{background:#3b1620;border:1px solid var(--bad);color:#fecaca;border-radius:10px;
+    padding:12px 14px;font-size:14px;margin-bottom:14px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>🎾 Tennis Gap</h1>
   <div class="sub">Player stats &amp; match predictions from real charted-match data — serve-first, second serve included.</div>
+  <div id="fatal" class="hidden">The player data didn't load. Check your connection and refresh the page.</div>
 
   <div class="bar">
     <div class="seg" id="tourSeg">
@@ -74,10 +96,10 @@
   <section id="viewStats">
     <div class="card">
       <div class="grid2">
-        <div><label>Player 1</label><input list="names" id="p1" placeholder="Start typing a name…"></div>
-        <div><label>Player 2 (optional — for comparison)</label><input list="names" id="p2" placeholder="Start typing a name…"></div>
+        <div><label>Player 1</label><div class="ac"><input id="p1" autocomplete="off" placeholder="Type a name, then tap it below…"></div></div>
+        <div><label>Player 2 (optional — for comparison)</label><div class="ac"><input id="p2" autocomplete="off" placeholder="Type a name, then tap it below…"></div></div>
       </div>
-      <datalist id="names"></datalist>
+      <button class="go" id="btnCompare">Compare players</button>
       <div id="statsOut"></div>
     </div>
   </section>
@@ -86,13 +108,14 @@
   <section id="viewSim" class="hidden">
     <div class="card">
       <div class="grid2">
-        <div><label>Player A</label><input list="names" id="sa" placeholder="Start typing a name…"></div>
-        <div><label>Player B</label><input list="names" id="sb" placeholder="Start typing a name…"></div>
+        <div><label>Player A</label><div class="ac"><input id="sa" autocomplete="off" placeholder="Type a name, then tap it below…"></div></div>
+        <div><label>Player B</label><div class="ac"><input id="sb" autocomplete="off" placeholder="Type a name, then tap it below…"></div></div>
       </div>
       <div class="bar" style="margin-top:12px">
         <label style="margin:0">Match format</label>
         <select id="bestof"><option value="3">Best of 3</option><option value="5">Best of 5</option></select>
       </div>
+      <button class="go blue" id="btnPredict">Predict match</button>
       <div id="simOut"></div>
     </div>
   </section>
@@ -109,6 +132,7 @@
 <script>
 "use strict";
 const D = window.GAP_DATA;
+if (!D) document.getElementById("fatal").classList.remove("hidden");
 // field indices in each profile array
 const F = {fs_in:0, fs_won:1, df:2, ss_won:3, rpw_fs:4, rpw_ss:5, matches:6, asof:7,
            aces:8, dfs:9, win:10, ue:11, bpf:12, bps:13};
@@ -214,20 +238,79 @@ function matchWinProb(pA, pB, bestOf, firstA){
 
 function surface(){ return $("surface").value; }
 function getProfile(name){
+  if (!D || !name) return null;
   const t = D.tours[tour], s = surface();
   if (t[s] && t[s][name]) return {p: t[s][name], fb: false};
   if (t["All"] && t["All"][name]) return {p: t["All"][name], fb: s !== "All"};
   return null;
 }
 function allNames(){
-  return Object.keys(D.tours[tour]["All"]).sort();
+  return D ? Object.keys(D.tours[tour]["All"]).sort() : [];
 }
-function fillNames(){
-  $("names").innerHTML = allNames().map(n => `<option value="${n}">`).join("");
+// Resolve free-typed text to a canonical player name:
+// exact match, else a unique substring match, else the first substring match.
+function resolveName(text){
+  text = (text || "").trim();
+  if (!text) return "";
+  const names = allNames(), low = text.toLowerCase();
+  for (const n of names) if (n.toLowerCase() === low) return n;
+  const hits = names.filter(n => n.toLowerCase().includes(low));
+  return hits.length ? hits[0] : null;
 }
 function freshLine(name, res){
   const p = res.p;
   return `${name}: ${p[F.matches]} charted matches · latest ${p[F.asof]}${res.fb ? " · all-surface profile (no "+surface()+" sample)" : ""}`;
+}
+
+/* ---------- autocomplete ---------- */
+function attachAutocomplete(input, onPick){
+  const wrap = input.parentElement;
+  let list = null, items = [], selIdx = -1;
+  function close(){ if (list){ list.remove(); list = null; items = []; selIdx = -1; } }
+  function open(){
+    close();
+    const q = input.value.trim().toLowerCase();
+    const names = allNames();
+    const hits = (q ? names.filter(n => n.toLowerCase().includes(q)) : names).slice(0, 40);
+    list = document.createElement("div");
+    list.className = "ac-list";
+    if (!hits.length){
+      list.innerHTML = `<div class="ac-none">No ${tour} player matches — try another spelling.</div>`;
+    } else {
+      hits.forEach((n, i) => {
+        const d = document.createElement("div");
+        d.className = "ac-item"; d.textContent = n;
+        d.addEventListener("pointerdown", ev => { ev.preventDefault(); pick(n); });
+        list.appendChild(d);
+      });
+      items = Array.from(list.children);
+    }
+    wrap.appendChild(list);
+  }
+  function pick(n){ input.value = n; close(); onPick(n); }
+  input.addEventListener("input", open);
+  input.addEventListener("focus", open);
+  input.addEventListener("blur", () => setTimeout(close, 150));
+  input.addEventListener("keydown", ev => {
+    if (ev.key === "Escape"){ close(); return; }
+    if (ev.key === "Enter"){
+      ev.preventDefault();
+      if (list && selIdx >= 0 && items[selIdx]) pick(items[selIdx].textContent);
+      else if (list && items.length) pick(items[0].textContent);
+      else onPick(input.value);
+      return;
+    }
+    if (!list) return;
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp"){
+      ev.preventDefault();
+      selIdx = ev.key === "ArrowDown"
+        ? Math.min(items.length - 1, selIdx + 1)
+        : Math.max(0, selIdx - 1);
+      items.forEach((d, i) => d.classList.toggle("sel", i === selIdx));
+      if (items[selIdx]) items[selIdx].scrollIntoView({block: "nearest"});
+    }
+  });
+  return { refresh: () => { if (list) open(); } };
 }
 
 /* ---------- stats view ---------- */
@@ -256,57 +339,70 @@ function avgRows(){
   ];
 }
 function renderStats(){
-  const n1 = $("p1").value.trim(), n2 = $("p2").value.trim();
   const out = $("statsOut");
-  const r1 = n1 && getProfile(n1), r2 = n2 && getProfile(n2);
-  if (!r1){ out.innerHTML = n1 ? `<div class="fresh">No profile for "${n1}" on the ${tour} tour yet.</div>` : ""; return; }
+  if (!D){ out.innerHTML = ""; return; }
+  const n1 = resolveName($("p1").value), n2 = resolveName($("p2").value);
+  if ($("p1").value.trim() && n1 === null){
+    out.innerHTML = `<div class="warn">No ${tour} player matches "${$("p1").value.trim()}". Type a few letters and tap the name in the list.</div>`; return;
+  }
+  if (!n1){ out.innerHTML = ""; return; }
+  if (n1) $("p1").value = n1;
+  const r1 = getProfile(n1);
+  if (!r1){ out.innerHTML = `<div class="warn">No profile for ${n1} on the ${tour} tour yet.</div>`; return; }
   const rows1 = statRows(r1.p);
   let head, body;
-  if (r2){
-    const rows2 = statRows(r2.p);
-    head = `<tr><th></th><th>${n1}</th><th>${n2}</th></tr>`;
-    body = rows1.map((row, i) => {
-      const v1 = row[1], v2 = rows2[i][1], inv = row[2];
-      if (v1 == null || v2 == null) return "";
-      const e1 = inv ? v1 < v2 : v1 > v2, e2 = inv ? v2 < v1 : v2 > v1;
-      const fmt = row[0].startsWith("Composite") ? v => v.toFixed(3) : pct;
-      return `<tr><td>${row[0]}</td><td class="${e1?"edge":""}">${fmt(v1)}</td><td class="${e2?"edge":""}">${fmt(v2)}</td></tr>`;
-    }).join("");
-  } else {
-    const av = avgRows();
-    head = `<tr><th></th><th>${n1}</th><th>Tour average</th></tr>`;
-    body = rows1.map((row, i) => {
-      const v1 = row[1], va = av[i][1];
-      const fmt = row[0].startsWith("Composite") ? v => v.toFixed(3) : pct;
-      return `<tr><td>${row[0]}</td><td>${fmt(v1)}</td><td>${va == null ? "—" : fmt(va)}</td></tr>`;
-    }).join("");
+  if (n2){
+    $("p2").value = n2;
+    const r2 = getProfile(n2);
+    if (r2){
+      const rows2 = statRows(r2.p);
+      head = `<tr><th></th><th>${n1}</th><th>${n2}</th></tr>`;
+      body = rows1.map((row, i) => {
+        const v1 = row[1], v2 = rows2[i][1], inv = row[2];
+        if (v1 == null || v2 == null) return "";
+        const e1 = inv ? v1 < v2 : v1 > v2, e2 = inv ? v2 < v1 : v2 > v1;
+        const fmt = row[0].startsWith("Composite") ? v => v.toFixed(3) : pct;
+        return `<tr><td>${row[0]}</td><td class="${e1?"edge":""}">${fmt(v1)}</td><td class="${e2?"edge":""}">${fmt(v2)}</td></tr>`;
+      }).join("");
+      out.innerHTML = `<table>${head}${body}</table>` + basicsHtml(r1.p, n1) + basicsHtml(r2.p, n2) +
+        `<div class="fresh">${freshLine(n1, r1)}<br>${freshLine(n2, r2)}</div>`;
+      return;
+    }
   }
-  const bas = r1.p;
-  let basics = `<div class="basics">
-    <span>Aces / match <b>${bas[F.aces].toFixed(1)}</b></span>
-    <span>DFs / match <b>${bas[F.dfs].toFixed(1)}</b></span>
-    <span>Winners / match <b>${bas[F.win].toFixed(1)}</b></span>
-    <span>Unforced errors / match <b>${bas[F.ue].toFixed(1)}</b></span>
-    <span>Break pts faced / match <b>${bas[F.bpf].toFixed(1)}</b></span></div>`;
-  if (r2){
-    const q = r2.p;
-    basics += `<div class="basics">
-    <span>${n2} — Aces <b>${q[F.aces].toFixed(1)}</b></span>
-    <span>DFs <b>${q[F.dfs].toFixed(1)}</b></span>
-    <span>Winners <b>${q[F.win].toFixed(1)}</b></span>
-    <span>UE <b>${q[F.ue].toFixed(1)}</b></span>
-    <span>BPs faced <b>${q[F.bpf].toFixed(1)}</b></span></div>`;
-  }
-  out.innerHTML = `<table>${head}${body}</table>` + basics +
-    `<div class="fresh">${freshLine(n1, r1)}${r2 ? "<br>" + freshLine(n2, r2) : ""}</div>`;
+  const av = avgRows();
+  head = `<tr><th></th><th>${n1}</th><th>Tour average</th></tr>`;
+  body = rows1.map((row, i) => {
+    const v1 = row[1], va = av[i][1];
+    const fmt = row[0].startsWith("Composite") ? v => v.toFixed(3) : pct;
+    return `<tr><td>${row[0]}</td><td>${fmt(v1)}</td><td>${va == null ? "—" : fmt(va)}</td></tr>`;
+  }).join("");
+  out.innerHTML = `<table>${head}${body}</table>` + basicsHtml(r1.p, n1) +
+    `<div class="fresh">${freshLine(n1, r1)}</div>`;
+}
+function basicsHtml(p, name){
+  return `<div class="basics"><span>${name} — Aces / match <b>${p[F.aces].toFixed(1)}</b></span>
+    <span>DFs / match <b>${p[F.dfs].toFixed(1)}</b></span>
+    <span>Winners / match <b>${p[F.win].toFixed(1)}</b></span>
+    <span>Unforced errors / match <b>${p[F.ue].toFixed(1)}</b></span>
+    <span>Break pts faced / match <b>${p[F.bpf].toFixed(1)}</b></span></div>`;
 }
 
 /* ---------- simulator view ---------- */
 function renderSim(){
-  const na = $("sa").value.trim(), nb = $("sb").value.trim();
   const out = $("simOut");
-  const ra = na && getProfile(na), rb = nb && getProfile(nb);
-  if (!ra || !rb){ out.innerHTML = (na && !ra) || (nb && !rb) ? `<div class="fresh">Pick two players with profiles on the ${tour} tour.</div>` : ""; return; }
+  if (!D){ out.innerHTML = ""; return; }
+  const na = resolveName($("sa").value), nb = resolveName($("sb").value);
+  if (($("sa").value.trim() && na === null) || ($("sb").value.trim() && nb === null)){
+    out.innerHTML = `<div class="warn">One of those names doesn't match a ${tour} player. Type a few letters and tap the name in the list.</div>`; return;
+  }
+  if (!na || !nb){
+    if ($("sa").value.trim() || $("sb").value.trim())
+      out.innerHTML = `<div class="fresh">Pick both players, then tap Predict match.</div>`;
+    return;
+  }
+  $("sa").value = na; $("sb").value = nb;
+  const ra = getProfile(na), rb = getProfile(nb);
+  if (!ra || !rb){ out.innerHTML = `<div class="warn">A profile is missing for one of those players.</div>`; return; }
   const base = D.base[tour];
   const dA = duel(ra.p, rb.p, base), dB = duel(rb.p, ra.p, base);
   const bo = parseInt($("bestof").value, 10);
@@ -330,13 +426,25 @@ function renderSim(){
 }
 
 /* ---------- wiring ---------- */
+const acP1 = attachAutocomplete($("p1"), renderStats);
+const acP2 = attachAutocomplete($("p2"), renderStats);
+const acSA = attachAutocomplete($("sa"), renderSim);
+const acSB = attachAutocomplete($("sb"), renderSim);
+$("btnCompare").addEventListener("click", renderStats);
+$("btnPredict").addEventListener("click", renderSim);
 $("tourSeg").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   tour = b.dataset.tour;
   document.querySelectorAll("#tourSeg button").forEach(x => x.classList.toggle("on", x === b));
-  fillNames(); renderStats(); renderSim();
+  const names = allNames();
+  for (const id of ["p1","p2","sa","sb"]){
+    const el = $(id);
+    if (el.value.trim() && !names.includes(el.value.trim())) el.value = "";
+  }
+  renderStats(); renderSim();
 });
 $("surface").addEventListener("change", () => { renderStats(); renderSim(); });
+$("bestof").addEventListener("change", renderSim);
 $("tabStats").addEventListener("click", () => {
   $("viewStats").classList.remove("hidden"); $("viewSim").classList.add("hidden");
   $("tabStats").classList.add("on"); $("tabSim").classList.remove("on");
@@ -345,12 +453,11 @@ $("tabSim").addEventListener("click", () => {
   $("viewSim").classList.remove("hidden"); $("viewStats").classList.add("hidden");
   $("tabSim").classList.add("on"); $("tabStats").classList.remove("on");
 });
-["p1","p2"].forEach(id => $(id).addEventListener("change", renderStats));
-["sa","sb","bestof"].forEach(id => $(id).addEventListener("change", renderSim));
-fillNames();
-$("p1").value = "Iga Swiatek"; $("p2").value = "Aryna Sabalenka";
-$("sa").value = "Iga Swiatek"; $("sb").value = "Aryna Sabalenka";
-renderStats(); renderSim();
+if (D){
+  $("p1").value = "Iga Swiatek"; $("p2").value = "Aryna Sabalenka";
+  $("sa").value = "Iga Swiatek"; $("sb").value = "Aryna Sabalenka";
+  renderStats(); renderSim();
+}
 </script>
 </body>
 </html>
