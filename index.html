@@ -43,9 +43,13 @@
   .ac-list{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;
     background:var(--panel2);border:1px solid var(--acc2);border-radius:10px;
     max-height:264px;overflow-y:auto;box-shadow:0 10px 30px rgba(0,0,0,.5)}
-  .ac-item{padding:12px 14px;font-size:16px;cursor:pointer;border-bottom:1px solid var(--line)}
+  .ac-item{padding:12px 14px;font-size:16px;cursor:pointer;border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:baseline;gap:12px}
   .ac-item:last-child{border-bottom:0}
   .ac-item:hover,.ac-item.sel{background:#27334f}
+  .ac-val{color:var(--dim);font-size:14px;white-space:nowrap}
+  .dirbtn{background:var(--panel);color:var(--ink);border:1px solid var(--line);
+    border-radius:9px;padding:10px 12px;font-size:14px;cursor:pointer;min-height:44px}
   .ac-none{padding:12px 14px;font-size:14px;color:var(--dim)}
 
   .go{display:block;width:100%;margin-top:14px;background:var(--acc);color:#08130c;
@@ -108,6 +112,18 @@
       <option value="Clay">Clay</option>
       <option value="Grass">Grass</option>
     </select>
+    <select id="sortBy" aria-label="Sort player lists by">
+      <option value="name">Sort list: Name</option>
+      <option value="spw">Sort list: Service pts won</option>
+      <option value="rpw">Sort list: Return pts won</option>
+      <option value="hold">Sort list: Hold %</option>
+      <option value="break">Sort list: Break %</option>
+      <option value="fsin">Sort list: 1st serve in %</option>
+      <option value="fswon">Sort list: 1st serve won %</option>
+      <option value="sswon">Sort list: 2nd serve won %</option>
+      <option value="df">Sort list: Double-fault rate</option>
+    </select>
+    <button id="sortDir" type="button" class="dirbtn">A → Z</button>
   </div>
 
   <div class="tabs">
@@ -302,6 +318,48 @@ function getProfile(name, surf){
 function allNames(){
   return D ? Object.keys(D.tours[tour]["All"]).sort() : [];
 }
+/* ---------- list sorting (browse order for the player dropdowns) ---------- */
+let sortDescending = true;
+function statValue(p, key){
+  const base = D.base[tour];
+  switch (key){
+    case "spw": return spwOf(p);
+    case "rpw": return rpwOf(p, base);
+    case "hold": return gameWinProb(spwOf(p));
+    case "break": return gameWinProb(rpwOf(p, base));
+    case "fsin": return p[F.fs_in];
+    case "fswon": return p[F.fs_won];
+    case "sswon": return p[F.ss_won];
+    case "df": return p[F.df];
+  }
+  return null;
+}
+function sortedEntries(){
+  const key = $("sortBy").value;
+  const entries = allNames().map(n => {
+    let val = null;
+    if (key !== "name"){
+      const r = getProfile(n);
+      if (r) val = statValue(r.p, key);
+    }
+    return {name: n, val};
+  });
+  entries.sort((a, b) => {
+    if (key === "name")
+      return sortDescending ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+    if (a.val == null && b.val == null) return a.name.localeCompare(b.name);
+    if (a.val == null) return 1;
+    if (b.val == null) return -1;
+    const d = sortDescending ? b.val - a.val : a.val - b.val;
+    return d !== 0 ? d : a.name.localeCompare(b.name);
+  });
+  return entries;
+}
+function sortDirLabel(){
+  const key = $("sortBy").value;
+  if (key === "name") return sortDescending ? "A → Z" : "Z → A";
+  return sortDescending ? "High → Low" : "Low → High";
+}
 // Resolve free-typed text to a canonical player name:
 // exact match, else a unique substring match, else the first substring match.
 function resolveName(text){
@@ -330,28 +388,36 @@ function attachAutocomplete(input, onPick){
   function open(mode, viaArrow){
     if (!viaArrow) arrowOpen = false;
     close();
-    const names = allNames();
+    const entries = sortedEntries();
     const q = input.value.trim().toLowerCase();
     // 'all' (chevron / focus on an exact name / empty field): the full roster.
-    // 'filter': live substring matches while typing.
-    const full = mode === "all" || q === "" || names.some(n => n.toLowerCase() === q);
-    const hits = full ? names : names.filter(n => n.toLowerCase().includes(q)).slice(0, 60);
+    // 'filter': live substring matches while typing. Both honor the sort order.
+    const full = mode === "all" || q === "" || entries.some(e => e.name.toLowerCase() === q);
+    const hits = full ? entries : entries.filter(e => e.name.toLowerCase().includes(q)).slice(0, 60);
+    const showVal = $("sortBy").value !== "name";
     list = document.createElement("div");
     list.className = "ac-list";
     if (!hits.length){
       list.innerHTML = `<div class="ac-none">No ${tour} player matches — try another spelling.</div>`;
     } else {
-      hits.forEach(n => {
+      hits.forEach(e => {
         const d = document.createElement("div");
-        d.className = "ac-item"; d.textContent = n;
-        d.addEventListener("pointerdown", ev => { ev.preventDefault(); pick(n); });
+        d.className = "ac-item"; d.dataset.name = e.name;
+        const nm = document.createElement("span"); nm.textContent = e.name;
+        d.appendChild(nm);
+        if (showVal && e.val != null){
+          const v = document.createElement("span");
+          v.className = "ac-val"; v.textContent = pct(e.val);
+          d.appendChild(v);
+        }
+        d.addEventListener("pointerdown", ev => { ev.preventDefault(); pick(e.name); });
         list.appendChild(d);
       });
       items = Array.from(list.children);
     }
     wrap.appendChild(list);
     if (full){
-      const cur = items.findIndex(d => d.textContent === input.value.trim());
+      const cur = items.findIndex(d => d.dataset.name === input.value.trim());
       if (cur >= 0){
         selIdx = cur;
         items[cur].classList.add("sel");
@@ -374,8 +440,8 @@ function attachAutocomplete(input, onPick){
     if (ev.key === "Escape"){ close(); return; }
     if (ev.key === "Enter"){
       ev.preventDefault();
-      if (list && selIdx >= 0 && items[selIdx]) pick(items[selIdx].textContent);
-      else if (list && items.length) pick(items[0].textContent);
+      if (list && selIdx >= 0 && items[selIdx]) pick(items[selIdx].dataset.name);
+      else if (list && items.length) pick(items[0].dataset.name);
       else onPick(input.value);
       return;
     }
@@ -570,6 +636,11 @@ const acSA = attachAutocomplete($("sa"), renderSim);
 const acSB = attachAutocomplete($("sb"), renderSim);
 $("btnCompare").addEventListener("click", renderStats);
 $("btnPredict").addEventListener("click", renderSim);
+$("sortBy").addEventListener("change", () => { $("sortDir").textContent = sortDirLabel(); });
+$("sortDir").addEventListener("click", () => {
+  sortDescending = !sortDescending;
+  $("sortDir").textContent = sortDirLabel();
+});
 $("tourSeg").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   tour = b.dataset.tour;
