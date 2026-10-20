@@ -34,7 +34,11 @@
   /* --- autocomplete --- */
   .ac{position:relative}
   .ac input{width:100%;background:var(--panel2);color:var(--ink);border:1px solid var(--line);
-    border-radius:9px;padding:12px;font-size:16px;min-height:48px}
+    border-radius:9px;padding:12px 46px 12px 12px;font-size:16px;min-height:48px}
+  .ac-arrow{position:absolute;right:2px;top:50%;transform:translateY(-50%);
+    width:42px;height:42px;background:transparent;border:0;color:var(--dim);
+    font-size:17px;cursor:pointer;border-radius:8px}
+  .ac-arrow:active,.ac-arrow:hover{color:var(--ink);background:#27334f}
   .ac input:focus{outline:2px solid var(--acc2);outline-offset:0}
   .ac-list{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;
     background:var(--panel2);border:1px solid var(--acc2);border-radius:10px;
@@ -115,8 +119,8 @@
   <section id="viewStats">
     <div class="card">
       <div class="grid2">
-        <div><label>Player 1</label><div class="ac"><input id="p1" autocomplete="off" placeholder="Type a name, then tap it below…"></div></div>
-        <div><label>Player 2 (optional — for comparison)</label><div class="ac"><input id="p2" autocomplete="off" placeholder="Type a name, then tap it below…"></div></div>
+        <div><label>Player 1</label><div class="ac"><input id="p1" autocomplete="off" placeholder="Type a name, or tap ▾ to browse…"></div></div>
+        <div><label>Player 2 (optional — for comparison)</label><div class="ac"><input id="p2" autocomplete="off" placeholder="Type a name, or tap ▾ to browse…"></div></div>
       </div>
       <button class="go" id="btnCompare">Compare players</button>
       <div id="statsOut"></div>
@@ -127,8 +131,8 @@
   <section id="viewSim" class="hidden">
     <div class="card">
       <div class="grid2">
-        <div><label>Player A</label><div class="ac"><input id="sa" autocomplete="off" placeholder="Type a name, then tap it below…"></div></div>
-        <div><label>Player B</label><div class="ac"><input id="sb" autocomplete="off" placeholder="Type a name, then tap it below…"></div></div>
+        <div><label>Player A</label><div class="ac"><input id="sa" autocomplete="off" placeholder="Type a name, or tap ▾ to browse…"></div></div>
+        <div><label>Player B</label><div class="ac"><input id="sb" autocomplete="off" placeholder="Type a name, or tap ▾ to browse…"></div></div>
       </div>
       <div class="bar" style="margin-top:12px">
         <label style="margin:0">Match format</label>
@@ -313,22 +317,31 @@ function freshLine(name, res){
   return `${name}: ${p[F.matches]} charted matches · latest ${p[F.asof]}${res.fb ? " · all-surface profile (no "+surface()+" sample)" : ""}`;
 }
 
-/* ---------- autocomplete ---------- */
+/* ---------- autocomplete (combobox: type to filter, or open and scroll) ---------- */
 function attachAutocomplete(input, onPick){
   const wrap = input.parentElement;
-  let list = null, items = [], selIdx = -1;
-  function close(){ if (list){ list.remove(); list = null; items = []; selIdx = -1; } }
-  function open(){
+  const arrow = document.createElement("button");
+  arrow.type = "button"; arrow.className = "ac-arrow";
+  arrow.setAttribute("aria-label", "Show all players");
+  arrow.textContent = "▾";
+  wrap.appendChild(arrow);
+  let list = null, items = [], selIdx = -1, arrowOpen = false;
+  function close(){ if (list){ list.remove(); list = null; items = []; selIdx = -1; } arrowOpen = false; }
+  function open(mode, viaArrow){
+    if (!viaArrow) arrowOpen = false;
     close();
-    const q = input.value.trim().toLowerCase();
     const names = allNames();
-    const hits = (q ? names.filter(n => n.toLowerCase().includes(q)) : names).slice(0, 40);
+    const q = input.value.trim().toLowerCase();
+    // 'all' (chevron / focus on an exact name / empty field): the full roster.
+    // 'filter': live substring matches while typing.
+    const full = mode === "all" || q === "" || names.some(n => n.toLowerCase() === q);
+    const hits = full ? names : names.filter(n => n.toLowerCase().includes(q)).slice(0, 60);
     list = document.createElement("div");
     list.className = "ac-list";
     if (!hits.length){
       list.innerHTML = `<div class="ac-none">No ${tour} player matches — try another spelling.</div>`;
     } else {
-      hits.forEach((n, i) => {
+      hits.forEach(n => {
         const d = document.createElement("div");
         d.className = "ac-item"; d.textContent = n;
         d.addEventListener("pointerdown", ev => { ev.preventDefault(); pick(n); });
@@ -337,11 +350,26 @@ function attachAutocomplete(input, onPick){
       items = Array.from(list.children);
     }
     wrap.appendChild(list);
+    if (full){
+      const cur = items.findIndex(d => d.textContent === input.value.trim());
+      if (cur >= 0){
+        selIdx = cur;
+        items[cur].classList.add("sel");
+        requestAnimationFrame(() => items[cur].scrollIntoView({block: "center"}));
+      }
+    }
   }
   function pick(n){ input.value = n; close(); onPick(n); }
-  input.addEventListener("input", open);
-  input.addEventListener("focus", open);
+  input.addEventListener("input", () => open("filter"));
+  input.addEventListener("focus", () => open());
   input.addEventListener("blur", () => setTimeout(close, 150));
+  arrow.addEventListener("pointerdown", ev => {
+    ev.preventDefault();
+    if (arrowOpen){ close(); return; }
+    input.focus();
+    open("all", true);
+    arrowOpen = true;
+  });
   input.addEventListener("keydown", ev => {
     if (ev.key === "Escape"){ close(); return; }
     if (ev.key === "Enter"){
@@ -351,6 +379,7 @@ function attachAutocomplete(input, onPick){
       else onPick(input.value);
       return;
     }
+    if (!list && ev.key === "ArrowDown"){ open("all"); return; }
     if (!list) return;
     if (ev.key === "ArrowDown" || ev.key === "ArrowUp"){
       ev.preventDefault();
@@ -361,7 +390,7 @@ function attachAutocomplete(input, onPick){
       if (items[selIdx]) items[selIdx].scrollIntoView({block: "nearest"});
     }
   });
-  return { refresh: () => { if (list) open(); } };
+  return { refresh: () => { if (list) open("all"); } };
 }
 
 /* ---------- stats view ---------- */
