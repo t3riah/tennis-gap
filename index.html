@@ -396,8 +396,8 @@ function renderSim(){
     out.innerHTML = `<div class="warn">One of those names doesn't match a ${tour} player. Type a few letters and tap the name in the list.</div>`; return;
   }
   if (!na || !nb){
-    if ($("sa").value.trim() || $("sb").value.trim())
-      out.innerHTML = `<div class="fresh">Pick both players, then tap Predict match.</div>`;
+    out.innerHTML = ($("sa").value.trim() || $("sb").value.trim())
+      ? `<div class="fresh">Pick both players, then tap Predict match.</div>` : "";
     return;
   }
   $("sa").value = na; $("sb").value = nb;
@@ -422,7 +422,7 @@ function renderSim(){
       <tr><td>Service points won</td><td>${pct(dA.spw)}</td><td>${pct(dB.spw)}</td></tr>
     </table>
     <div class="fresh">${freshLine(na, ra)}<br>${freshLine(nb, rb)}<br>
-    Surface: ${surface()} · Best of ${bo} · exact probability from the serve model (she serves first — swapping who serves first moves it by &lt;0.5 pt).</div>`;
+    Surface: ${surface()} · Best of ${bo} · exact probability from the serve model (Player A serves first — swapping who serves first moves it by &lt;0.5 pt).</div>`;
 }
 
 /* ---------- wiring ---------- */
