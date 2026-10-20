@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tennis Gap — Player Stats & Match Predictor</title>
+<style>
+  :root{
+    --bg:#0f1420; --panel:#171e2e; --panel2:#1d2639; --line:#2a3550;
+    --ink:#e8edf7; --dim:#9aa7c2; --acc:#4ade80; --acc2:#60a5fa; --bad:#f87171;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:880px;margin:0 auto;padding:18px 14px 40px}
+  h1{font-size:26px;margin:6px 0 2px}
+  .sub{color:var(--dim);font-size:13px;margin-bottom:16px}
+  .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+  .seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .seg button{background:var(--panel);color:var(--dim);border:0;padding:8px 16px;
+    font-size:14px;cursor:pointer}
+  .seg button.on{background:var(--acc2);color:#fff;font-weight:600}
+  select,input[list]{background:var(--panel);color:var(--ink);border:1px solid var(--line);
+    border-radius:9px;padding:9px 10px;font-size:14px}
+  input[list]{width:100%}
+  .tabs{display:flex;gap:8px;margin:6px 0 14px}
+  .tabs button{flex:1;background:var(--panel);color:var(--dim);border:1px solid var(--line);
+    border-radius:10px;padding:11px;font-size:15px;cursor:pointer}
+  .tabs button.on{background:var(--panel2);color:var(--ink);font-weight:600;border-color:var(--acc2)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:560px){.grid2{grid-template-columns:1fr}}
+  label{font-size:12px;color:var(--dim);display:block;margin-bottom:5px}
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
+  th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right}
+  th:first-child,td:first-child{text-align:left;color:var(--dim)}
+  td.edge{color:var(--acc);font-weight:700}
+  .fresh{color:var(--dim);font-size:12px;margin-top:10px}
+  .basics{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:13px;color:var(--dim)}
+  .basics b{color:var(--ink)}
+  .pbar{display:flex;height:34px;border-radius:9px;overflow:hidden;margin:12px 0 4px;
+    border:1px solid var(--line)}
+  .pbar div{display:flex;align-items:center;justify-content:center;font-weight:700;color:#08130c}
+  .big{font-size:34px;font-weight:800}
+  .vs{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .note{color:var(--dim);font-size:12px;margin-top:12px;line-height:1.5}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎾 Tennis Gap</h1>
+  <div class="sub">Player stats &amp; match predictions from real charted-match data — serve-first, second serve included.</div>
+
+  <div class="bar">
+    <div class="seg" id="tourSeg">
+      <button data-tour="WTA" class="on">WTA</button>
+      <button data-tour="ATP">ATP</button>
+    </div>
+    <select id="surface">
+      <option value="All">All surfaces</option>
+      <option value="Hard">Hard</option>
+      <option value="Clay">Clay</option>
+      <option value="Grass">Grass</option>
+    </select>
+  </div>
+
+  <div class="tabs">
+    <button id="tabStats" class="on">Player Stats</button>
+    <button id="tabSim">Match Predictor</button>
+  </div>
+
+  <!-- ============ STATS ============ -->
+  <section id="viewStats">
+    <div class="card">
+      <div class="grid2">
+        <div><label>Player 1</label><input list="names" id="p1" placeholder="Start typing a name…"></div>
+        <div><label>Player 2 (optional — for comparison)</label><input list="names" id="p2" placeholder="Start typing a name…"></div>
+      </div>
+      <datalist id="names"></datalist>
+      <div id="statsOut"></div>
+    </div>
+  </section>
+
+  <!-- ============ SIMULATOR ============ -->
+  <section id="viewSim" class="hidden">
+    <div class="card">
+      <div class="grid2">
+        <div><label>Player A</label><input list="names" id="sa" placeholder="Start typing a name…"></div>
+        <div><label>Player B</label><input list="names" id="sb" placeholder="Start typing a name…"></div>
+      </div>
+      <div class="bar" style="margin-top:12px">
+        <label style="margin:0">Match format</label>
+        <select id="bestof"><option value="3">Best of 3</option><option value="5">Best of 5</option></select>
+      </div>
+      <div id="simOut"></div>
+    </div>
+  </section>
+
+  <div class="note">
+    Profiles are built from hand-charted matches (Jeff Sackmann's Match Charting Project),
+    recency-weighted over the last ~18 months and shrunk toward tour averages, so small
+    samples don't shout. Win probability is computed exactly from the serve model
+    (first/second serve splits, return splits, double faults, tiebreaks) — no simulation noise.
+  </div>
+</div>
+
+<script src="profiles.js"></script>
+<script>
+"use strict";
+const D = window.GAP_DATA;
+// field indices in each profile array
+const F = {fs_in:0, fs_won:1, df:2, ss_won:3, rpw_fs:4, rpw_ss:5, matches:6, asof:7,
+           aces:8, dfs:9, win:10, ue:11, bpf:12, bps:13};
+let tour = "WTA";
+
+const $ = id => document.getElementById(id);
+const pct = x => (x*100).toFixed(1) + "%";
+const pct0 = x => Math.round(x*100) + "%";
+
+/* ================= CORE MATH (mirrors the Python engine) ================= */
+function logit(p){ p = Math.min(1-1e-6, Math.max(1e-6, p)); return Math.log(p/(1-p)); }
+function sigmoid(x){ return 1/(1+Math.exp(-x)); }
+function combineRate(serverRate, returnerRate, leagueRate){
+  const v = sigmoid(logit(serverRate) + logit(1-returnerRate) - logit(leagueRate));
+  return Math.min(0.985, Math.max(0.03, v));
+}
+function gameWinProb(p){
+  const q = 1-p, pd = (p*p)/(p*p + q*q);
+  return Math.pow(p,4)*(1 + 4*q + 10*q*q) + 20*Math.pow(p,3)*Math.pow(q,3)*pd;
+}
+// profile -> derived composites (vs league-average opponent mix)
+function spwOf(p){ return p[F.fs_in]*p[F.fs_won] + (1-p[F.fs_in])*(1-p[F.df])*p[F.ss_won]; }
+function rpwOf(p, base){
+  return base.fs_in*p[F.rpw_fs]
+       + (1-base.fs_in)*(1-base.df_rate)*p[F.rpw_ss]
+       + (1-base.fs_in)*base.df_rate;
+}
+// one direction of a matchup: server serving to returner
+function duel(server, returner, base){
+  const pFs = combineRate(server[F.fs_won], returner[F.rpw_fs], base.fs_won);
+  const pSs = combineRate(server[F.ss_won], returner[F.rpw_ss], base.ss_won);
+  const spw = server[F.fs_in]*pFs + (1-server[F.fs_in])*(1-server[F.df])*pSs;
+  return {pFs, pSs, spw, dfPoint:(1-server[F.fs_in])*server[F.df]};
+}
+function tbWinProb(pA, pB, firstA){ // P(A wins tiebreak); pB = P(B wins pt on B's serve)
+  // Serve rotation (ABBA): the first server serves point 1, then 2-point blocks.
+  function aServesAt(t){
+    const block = Math.floor((t+1)/2);
+    return ((block % 2 === 0) === firstA);
+  }
+  // Once both players reach 6, the tiebreak is a win-by-2 walk over
+  // (point-diff, serve-phase) — solve that 12-state chain by iteration.
+  function chain(diff, t){
+    const q = phi => aServesAt(phi) ? pA : (1 - pB);
+    let V = { "-1": [0.5,0.5,0.5,0.5], "0": [0.5,0.5,0.5,0.5], "1": [0.5,0.5,0.5,0.5] };
+    for (let it = 0; it < 400; it++){
+      const N = { "-1": [0,0,0,0], "0": [0,0,0,0], "1": [0,0,0,0] };
+      for (const d of [-1, 0, 1]) for (let phi = 0; phi < 4; phi++){
+        const p = q((t + phi) % 4), nx = (phi + 1) % 4;
+        const up = (d + 1 === 2) ? 1 : V[String(d+1)][nx];
+        const dn = (d - 1 === -2) ? 0 : V[String(d-1)][nx];
+        N[String(d)][phi] = p*up + (1-p)*dn;
+      }
+      V = N;
+    }
+    return V[String(diff)][0];
+  }
+  const memo = {};
+  function rec(a, b){
+    if (a >= 7 && a-b >= 2) return 1;
+    if (b >= 7 && b-a >= 2) return 0;
+    if (a >= 6 && b >= 6) return chain(a - b, a + b);
+    const k = a+","+b; if (k in memo) return memo[k];
+    const p = aServesAt(a+b) ? pA : (1 - pB);
+    const v = p*rec(a+1, b) + (1-p)*rec(a, b+1);
+    memo[k] = v; return v;
+  }
+  return rec(0, 0);
+}
+function setOutcomes(pA, pB, firstA){ // {Ae,Ao,Be,Bo} parity = total games (TB counts as one)
+  const gA = gameWinProb(pA), gB = 1 - gameWinProb(pB);
+  const tb = tbWinProb(pA, pB, firstA);
+  const KEYS = ["Ae", "Ao", "Be", "Bo"], memo = {};
+  function rec(ga, gb){
+    const tot = ga+gb, par = (tot % 2 === 0) ? "e" : "o";
+    const o = {Ae:0, Ao:0, Be:0, Bo:0};
+    if (ga >= 6 && ga-gb >= 2){ o["A"+par] = 1; return o; }
+    if (gb >= 6 && gb-ga >= 2){ o["B"+par] = 1; return o; }
+    if (ga === 6 && gb === 6){ o.Ao = tb; o.Bo = 1 - tb; return o; }
+    const k = ga+","+gb; if (k in memo) return memo[k];
+    const aServes = ((tot % 2 === 0) === firstA);
+    const p = aServes ? gA : gB;
+    const r1 = rec(ga+1, gb), r2 = rec(ga, gb+1);
+    for (const key of KEYS) o[key] = p*r1[key] + (1-p)*r2[key];
+    memo[k] = o; return o;
+  }
+  return rec(0, 0);
+}
+function matchWinProb(pA, pB, bestOf, firstA){
+  const need = Math.ceil(bestOf/2), memo = {};
+  function rec(sa, sb, fa){
+    if (sa === need) return 1;
+    if (sb === need) return 0;
+    const k = sa+","+sb+","+(fa?1:0); if (k in memo) return memo[k];
+    const o = setOutcomes(pA, pB, fa);
+    const v = o.Ae*rec(sa+1, sb, fa) + o.Ao*rec(sa+1, sb, !fa)
+            + o.Be*rec(sa, sb+1, fa) + o.Bo*rec(sa, sb+1, !fa);
+    memo[k] = v; return v;
+  }
+  return rec(0, 0, firstA !== false);
+}
+/* ================= END CORE MATH ================= */
+
+function surface(){ return $("surface").value; }
+function getProfile(name){
+  const t = D.tours[tour], s = surface();
+  if (t[s] && t[s][name]) return {p: t[s][name], fb: false};
+  if (t["All"] && t["All"][name]) return {p: t["All"][name], fb: s !== "All"};
+  return null;
+}
+function allNames(){
+  return Object.keys(D.tours[tour]["All"]).sort();
+}
+function fillNames(){
+  $("names").innerHTML = allNames().map(n => `<option value="${n}">`).join("");
+}
+function freshLine(name, res){
+  const p = res.p;
+  return `${name}: ${p[F.matches]} charted matches · latest ${p[F.asof]}${res.fb ? " · all-surface profile (no "+surface()+" sample)" : ""}`;
+}
+
+/* ---------- stats view ---------- */
+function statRows(p){
+  const base = D.base[tour], spw = spwOf(p), rpw = rpwOf(p, base);
+  return [
+    ["Service points won", spw], ["Return points won", rpw],
+    ["Composite (SPW + RPW)", spw + rpw],
+    ["Hold % (modeled)", gameWinProb(spw)], ["Break % (modeled)", gameWinProb(rpw)],
+    ["1st serve in", p[F.fs_in]], ["1st serve won", p[F.fs_won]],
+    ["2nd serve won", p[F.ss_won]], ["Double-fault rate", p[F.df], true],
+    ["Return vs 1st serve", p[F.rpw_fs]], ["Return vs 2nd serve", p[F.rpw_ss]],
+    ["Break points saved", p[F.bps]],
+  ];
+}
+function avgRows(){
+  const a = D.avg[tour], b = D.base[tour];
+  return [
+    ["Service points won", a.spw], ["Return points won", a.rpw],
+    ["Composite (SPW + RPW)", a.spw + a.rpw],
+    ["Hold % (modeled)", gameWinProb(a.spw)], ["Break % (modeled)", gameWinProb(a.rpw)],
+    ["1st serve in", b.fs_in], ["1st serve won", b.fs_won],
+    ["2nd serve won", b.ss_won], ["Double-fault rate", b.df_rate, true],
+    ["Return vs 1st serve", b.rpw_fs], ["Return vs 2nd serve", b.rpw_ss],
+    ["Break points saved", null],
+  ];
+}
+function renderStats(){
+  const n1 = $("p1").value.trim(), n2 = $("p2").value.trim();
+  const out = $("statsOut");
+  const r1 = n1 && getProfile(n1), r2 = n2 && getProfile(n2);
+  if (!r1){ out.innerHTML = n1 ? `<div class="fresh">No profile for "${n1}" on the ${tour} tour yet.</div>` : ""; return; }
+  const rows1 = statRows(r1.p);
+  let head, body;
+  if (r2){
+    const rows2 = statRows(r2.p);
+    head = `<tr><th></th><th>${n1}</th><th>${n2}</th></tr>`;
+    body = rows1.map((row, i) => {
+      const v1 = row[1], v2 = rows2[i][1], inv = row[2];
+      if (v1 == null || v2 == null) return "";
+      const e1 = inv ? v1 < v2 : v1 > v2, e2 = inv ? v2 < v1 : v2 > v1;
+      const fmt = row[0].startsWith("Composite") ? v => v.toFixed(3) : pct;
+      return `<tr><td>${row[0]}</td><td class="${e1?"edge":""}">${fmt(v1)}</td><td class="${e2?"edge":""}">${fmt(v2)}</td></tr>`;
+    }).join("");
+  } else {
+    const av = avgRows();
+    head = `<tr><th></th><th>${n1}</th><th>Tour average</th></tr>`;
+    body = rows1.map((row, i) => {
+      const v1 = row[1], va = av[i][1];
+      const fmt = row[0].startsWith("Composite") ? v => v.toFixed(3) : pct;
+      return `<tr><td>${row[0]}</td><td>${fmt(v1)}</td><td>${va == null ? "—" : fmt(va)}</td></tr>`;
+    }).join("");
+  }
+  const bas = r1.p;
+  let basics = `<div class="basics">
+    <span>Aces / match <b>${bas[F.aces].toFixed(1)}</b></span>
+    <span>DFs / match <b>${bas[F.dfs].toFixed(1)}</b></span>
+    <span>Winners / match <b>${bas[F.win].toFixed(1)}</b></span>
+    <span>Unforced errors / match <b>${bas[F.ue].toFixed(1)}</b></span>
+    <span>Break pts faced / match <b>${bas[F.bpf].toFixed(1)}</b></span></div>`;
+  if (r2){
+    const q = r2.p;
+    basics += `<div class="basics">
+    <span>${n2} — Aces <b>${q[F.aces].toFixed(1)}</b></span>
+    <span>DFs <b>${q[F.dfs].toFixed(1)}</b></span>
+    <span>Winners <b>${q[F.win].toFixed(1)}</b></span>
+    <span>UE <b>${q[F.ue].toFixed(1)}</b></span>
+    <span>BPs faced <b>${q[F.bpf].toFixed(1)}</b></span></div>`;
+  }
+  out.innerHTML = `<table>${head}${body}</table>` + basics +
+    `<div class="fresh">${freshLine(n1, r1)}${r2 ? "<br>" + freshLine(n2, r2) : ""}</div>`;
+}
+
+/* ---------- simulator view ---------- */
+function renderSim(){
+  const na = $("sa").value.trim(), nb = $("sb").value.trim();
+  const out = $("simOut");
+  const ra = na && getProfile(na), rb = nb && getProfile(nb);
+  if (!ra || !rb){ out.innerHTML = (na && !ra) || (nb && !rb) ? `<div class="fresh">Pick two players with profiles on the ${tour} tour.</div>` : ""; return; }
+  const base = D.base[tour];
+  const dA = duel(ra.p, rb.p, base), dB = duel(rb.p, ra.p, base);
+  const bo = parseInt($("bestof").value, 10);
+  const pA = matchWinProb(dA.spw, dB.spw, bo, true);
+  const wA = Math.max(4, Math.min(96, pA*100));
+  out.innerHTML = `
+    <div class="vs"><div><div class="big" style="color:var(--acc)">${pct0(pA)}</div><div>${na}</div></div>
+    <div style="text-align:right"><div class="big" style="color:var(--acc2)">${pct0(1-pA)}</div><div>${nb}</div></div></div>
+    <div class="pbar"><div style="background:var(--acc);width:${wA}%">${pct0(pA)}</div>
+    <div style="background:var(--acc2);width:${100-wA}%">${pct0(1-pA)}</div></div>
+    <table>
+      <tr><th>When serving…</th><th>${na}</th><th>${nb}</th></tr>
+      <tr><td>Hold %</td><td>${pct(gameWinProb(dA.spw))}</td><td>${pct(gameWinProb(dB.spw))}</td></tr>
+      <tr><td>1st serve won (matchup)</td><td>${pct(dA.pFs)}</td><td>${pct(dB.pFs)}</td></tr>
+      <tr><td>2nd serve won (matchup)</td><td>${pct(dA.pSs)}</td><td>${pct(dB.pSs)}</td></tr>
+      <tr><td>Double faults (% of own service pts)</td><td>${pct(dA.dfPoint)}</td><td>${pct(dB.dfPoint)}</td></tr>
+      <tr><td>Service points won</td><td>${pct(dA.spw)}</td><td>${pct(dB.spw)}</td></tr>
+    </table>
+    <div class="fresh">${freshLine(na, ra)}<br>${freshLine(nb, rb)}<br>
+    Surface: ${surface()} · Best of ${bo} · exact probability from the serve model (she serves first — swapping who serves first moves it by &lt;0.5 pt).</div>`;
+}
+
+/* ---------- wiring ---------- */
+$("tourSeg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  tour = b.dataset.tour;
+  document.querySelectorAll("#tourSeg button").forEach(x => x.classList.toggle("on", x === b));
+  fillNames(); renderStats(); renderSim();
+});
+$("surface").addEventListener("change", () => { renderStats(); renderSim(); });
+$("tabStats").addEventListener("click", () => {
+  $("viewStats").classList.remove("hidden"); $("viewSim").classList.add("hidden");
+  $("tabStats").classList.add("on"); $("tabSim").classList.remove("on");
+});
+$("tabSim").addEventListener("click", () => {
+  $("viewSim").classList.remove("hidden"); $("viewStats").classList.add("hidden");
+  $("tabSim").classList.add("on"); $("tabStats").classList.remove("on");
+});
+["p1","p2"].forEach(id => $(id).addEventListener("change", renderStats));
+["sa","sb","bestof"].forEach(id => $(id).addEventListener("change", renderSim));
+fillNames();
+$("p1").value = "Iga Swiatek"; $("p2").value = "Aryna Sabalenka";
+$("sa").value = "Iga Swiatek"; $("sb").value = "Aryna Sabalenka";
+renderStats(); renderSim();
+</script>
+</body>
+</html>
