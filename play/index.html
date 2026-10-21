@@ -124,7 +124,7 @@
 
   <!-- ============ SERVE LAB ============ -->
   <section class="panel" id="panelLab">
-    <p class="q">How strong is her serve, really?</p>
+    <p class="q" id="labQ">How strong is her serve, really?</p>
     <p class="hint">Pick a player — her real serve numbers load into the sliders. Then move them and see what her serve is worth. Try dragging <b>second serves she wins</b> down and watch what happens.</p>
     <label class="plain" for="labPlayer">Player</label>
     <select class="player" id="labPlayer"></select>
@@ -140,7 +140,7 @@
   <!-- ============ WHAT-IF MATCHUP ============ -->
   <section class="panel hidden" id="panelMatch">
     <p class="q">Who wins — and what would flip it?</p>
-    <p class="hint">Pick the match. Then choose one player and make her serve a little better (or worse) with the sliders. The bar moves as you drag.</p>
+    <p class="hint">Pick the match. Then choose one player and make <span id="matchHintPron">her</span> serve a little better (or worse) with the sliders. The bar moves as you drag.</p>
     <label class="plain" for="matchA">Player A</label>
     <select class="player" id="matchA"></select>
     <div class="vsline">vs</div>
@@ -168,7 +168,7 @@
 
   <!-- ============ LIVE TRACKER ============ -->
   <section class="panel hidden" id="panelLive">
-    <p class="q">She's down a break. How much trouble is she in?</p>
+    <p class="q" id="liveQ">She's down a break. How much trouble is she in?</p>
     <p class="hint">Watching a match? Keep the score here with the big + / − buttons and it tells you, from the real score, how likely each player is to come through. It starts from the same two players as the match above.</p>
     <label class="plain" for="liveA">Player A</label>
     <select class="player" id="liveA"></select>
@@ -439,7 +439,7 @@ const LAB_DEFS = [
   {key:"fs_in",  plain:"First serves that land in",            pro:"1st serve in %",      min:40, max:80, step:1,   fmt:v=>pct0(v)},
   {key:"fs_won", plain:"First serves she wins the point on",   pro:"1st serve won %",     min:40, max:90, step:1,   fmt:v=>pct0(v), pronAware:true},
   {key:"ss_won", plain:"Second serves she wins the point on",  pro:"2nd serve won %",     min:28, max:72, step:1,   fmt:v=>pct0(v), pronAware:true},
-  {key:"df",     plain:"Second serves that are double faults",pro:"double-fault rate",   min:0,  max:30, step:0.5, fmt:v=>(Math.round(v*10)/10)+"%"}
+  {key:"df",     plain:"Second serves that are double faults",pro:"double-fault rate",   min:0,  max:30, step:0.5, fmt:v=>(Math.round(v*1000)/10).toString().replace(/\.0$/,"")+"%"}
 ];
 let labVals = null; // {fs_in, fs_won, ss_won, df} as fractions
 function labProfileFrom(){
@@ -483,12 +483,16 @@ function renderLab(){
   $("labVerdict").innerHTML = fn + " holds serve about " + outOf10(cur.hold) + " times in 10" + exactSpan(cur.hold);
   $("labDots").innerHTML = dotsHtml(cur.hold, false);
   $("labDots").className = "dots";
-  const dHold = (cur.hold - was.hold) * 10, dMatch = (cur.m - was.m) * 10;
+  const origP = getProfile(name);
+  const touched = Math.abs(labVals.fs_in - origP[F.fs_in]) > 0.001 || Math.abs(labVals.fs_won - origP[F.fs_won]) > 0.001 ||
+                  Math.abs(labVals.ss_won - origP[F.ss_won]) > 0.001 || Math.abs(labVals.df - origP[F.df]) > 0.001;
   let change = "That's with " + pr.p + " real numbers, exactly as they are.";
-  if (Math.abs(dHold) >= 0.4 || Math.abs(dMatch) >= 0.4){
-    const dir = (dHold >= 0) ? "better" : "worse";
-    change = "With your changes, " + pr.s + " holds about <b>" + Math.abs(dHold).toFixed(1).replace(/\.0$/, "") + " " + (Math.abs(dHold) >= 1.95 ? "serve games" : "serve game") + " in 10 " + (dHold >= 0 ? "more" : "fewer") + "</b> than usual — and " + (dMatch >= 0 ? "wins" : "loses") + " about <b>" + Math.abs(dMatch).toFixed(1).replace(/\.0$/, "") + " more matches in 10</b> against an average player. Drag it back to “Usually” to reset.";
-    if ((dHold >= 0) !== (dMatch >= 0) && Math.abs(dMatch) >= 0.4) change = "With your changes the serve moves one way and the match picture the other — the sliders only change " + pr.p + " serve, never " + pr.p + " return.";
+  if (touched){
+    change = "With your changes, " + pr.s + " holds about <b>" + outOf10(cur.hold) + " serve games in 10</b> instead of " + outOf10(was.hold) +
+             " — and wins about <b>" + outOf10(cur.m) + " matches in 10</b> against an average player, instead of " + outOf10(was.m) +
+             ". Move a slider back to its “Usually” number to undo it.";
+    if (outOf10(cur.hold) === outOf10(was.hold) && outOf10(cur.m) === outOf10(was.m))
+      change += " The rounded lines don't move — that change is smaller than one game in ten.";
   }
   $("labOutof").innerHTML = "Against an average tour player overall, " + pr.s + " would win about <b>" + outOf10(cur.m) + " matches in 10</b>" + exactSpan(cur.m) + ".";
   $("labRead").innerHTML = "<b>The read:</b> " + change;
@@ -737,6 +741,9 @@ document.querySelectorAll("#tourSeg button").forEach(btn => btn.addEventListener
   tour = btn.dataset.tour;
   document.querySelectorAll("#tourSeg button").forEach(x => x.classList.toggle("on", x === btn));
   document.querySelectorAll(".modes button small")[0].textContent = tour === "WTA" ? "How strong is her serve?" : "How strong is his serve?";
+  $("labQ").textContent = tour === "WTA" ? "How strong is her serve, really?" : "How strong is his serve, really?";
+  $("matchHintPron").textContent = tour === "WTA" ? "her" : "his";
+  $("liveQ").textContent = tour === "WTA" ? "She's down a break. How much trouble is she in?" : "He's down a break. How much trouble is he in?";
   refreshAllPlayers(false);
 }));
 $("surface").addEventListener("change", e => { surf = e.target.value; refreshAllPlayers(true); });
