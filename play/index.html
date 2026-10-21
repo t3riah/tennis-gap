@@ -61,9 +61,6 @@
   .names span:last-child{text-align:right}
   .read{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:15.5px;line-height:1.55;margin-top:14px}
   .read b{color:var(--court)}
-  .exact{display:none}
-  body.exact .exact{display:inline}
-  body.exact div.exact{display:block}
   .sliderow{margin:16px 0}
   .sliderow .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
   .sliderow .nm{font-size:16.5px;font-weight:700}
@@ -125,7 +122,7 @@
   <!-- ============ SERVE LAB ============ -->
   <section class="panel" id="panelLab">
     <p class="q" id="labQ">How strong is her serve, really?</p>
-    <p class="hint">Pick a player — her real serve numbers load into the sliders. Then move them and see what her serve is worth. Try dragging <b>second serves she wins</b> down and watch what happens.</p>
+    <p class="hint">Pick a player — their real serve numbers load into the sliders. Then move them and see what the serve is worth. Try dragging <b>second serves won</b> down and watch what happens.</p>
     <label class="plain" for="labPlayer">Player</label>
     <select class="player" id="labPlayer"></select>
     <div id="labSliders"></div>
@@ -428,7 +425,8 @@ function dotsHtml(p, isB){
   for (let i = 0; i < 10; i++) h += "<i" + (i < n ? ' class="f"' : "") + "></i>";
   return h;
 }
-function exactSpan(p){ return ' <span class="exact">(' + pct0(p) + ")</span>"; }
+let exactOn = false;
+function exactSpan(p){ return ' <span style="display:' + (exactOn ? "inline" : "none") + '">(' + pct0(p) + ")</span>"; }
 
 /* ===== SHARED STATE ===== */
 const DEFAULTS = { WTA: ["Iga Swiatek", "Aryna Sabalenka"], ATP: ["Jannik Sinner", "Carlos Alcaraz"] };
@@ -439,7 +437,7 @@ const LAB_DEFS = [
   {key:"fs_in",  plain:"First serves that land in",            pro:"1st serve in %",      min:40, max:80, step:1,   fmt:v=>pct0(v)},
   {key:"fs_won", plain:"First serves she wins the point on",   pro:"1st serve won %",     min:40, max:90, step:1,   fmt:v=>pct0(v), pronAware:true},
   {key:"ss_won", plain:"Second serves she wins the point on",  pro:"2nd serve won %",     min:28, max:72, step:1,   fmt:v=>pct0(v), pronAware:true},
-  {key:"df",     plain:"Second serves that are double faults",pro:"double-fault rate",   min:0,  max:30, step:0.5, fmt:v=>(Math.round(v*1000)/10).toString().replace(/\.0$/,"")+"%"}
+  {key:"df",     plain:"Second serves that are double faults",pro:"double-fault rate",   min:0,  max:30, step:0.1, fmt:v=>(Math.round(v*1000)/10).toString().replace(/\.0$/,"")+"%"}
 ];
 let labVals = null; // {fs_in, fs_won, ss_won, df} as fractions
 function labProfileFrom(){
@@ -558,8 +556,8 @@ function renderMatch(){
   $("matchBarA").style.width = (pA * 100) + "%";
   $("matchGhost").style.left = (orig.prob * 100) + "%";
   $("matchGhost").title = "Before your changes";
-  $("matchNameA").textContent = a + " — about " + outOf10(pA) + " in 10" + (document.body.classList.contains("exact") ? " (" + pct0(pA) + ")" : "");
-  $("matchNameB").textContent = b + " — about " + outOf10(1 - pA) + " in 10" + (document.body.classList.contains("exact") ? " (" + pct0(1 - pA) + ")" : "");
+  $("matchNameA").textContent = a + " — about " + outOf10(pA) + " in 10" + (exactOn ? " (" + pct0(pA) + ")" : "");
+  $("matchNameB").textContent = b + " — about " + outOf10(1 - pA) + " in 10" + (exactOn ? " (" + pct0(1 - pA) + ")" : "");
   const changed = matchOff.fs_won || matchOff.ss_won || matchOff.df;
   $("matchOutof").innerHTML = changed ?
     "The black mark is where it stood before your changes: about " + outOf10(orig.prob) + " in 10 for " + firstName(a) + "." :
@@ -707,8 +705,8 @@ function renderLive(){
   const leaderIsA = pMatch >= 0.5, pLeader = leaderIsA ? pMatch : 1 - pMatch, leadName = leaderIsA ? a : b;
   $("liveVerdict").innerHTML = (pLeader < 0.52 ? "Dead even from here" : firstName(leadName) + " " + verdictWords(pLeader) + " from here") + exactSpan(pLeader);
   $("liveBarA").style.width = (pMatch * 100) + "%";
-  $("liveNameA").textContent = a + " — about " + outOf10(pMatch) + " in 10" + (document.body.classList.contains("exact") ? " (" + pct0(pMatch) + ")" : "");
-  $("liveNameB").textContent = b + " — about " + outOf10(1 - pMatch) + " in 10" + (document.body.classList.contains("exact") ? " (" + pct0(1 - pMatch) + ")" : "");
+  $("liveNameA").textContent = a + " — about " + outOf10(pMatch) + " in 10" + (exactOn ? " (" + pct0(pMatch) + ")" : "");
+  $("liveNameB").textContent = b + " — about " + outOf10(1 - pMatch) + " in 10" + (exactOn ? " (" + pct0(1 - pMatch) + ")" : "");
   $("liveOutof").innerHTML = "From this exact score, if the match was replayed 10 times from here.";
   const serverName = srvIsA ? a : b, gameForA = pThisGame;
   const gameLine = isTB() ?
@@ -747,7 +745,7 @@ document.querySelectorAll("#tourSeg button").forEach(btn => btn.addEventListener
   refreshAllPlayers(false);
 }));
 $("surface").addEventListener("change", e => { surf = e.target.value; refreshAllPlayers(true); });
-$("exactToggle").addEventListener("change", e => { document.body.classList.toggle("exact", e.target.checked); renderLab(); renderMatch(); renderLive(); });
+$("exactToggle").addEventListener("change", e => { exactOn = e.target.checked; renderLab(); renderMatch(); renderLive(); });
 document.querySelectorAll("#tweakWho button").forEach(btn => btn.addEventListener("click", () => { tweakTarget = btn.dataset.who; syncTweakButtons(); renderMatch(); }));
 document.querySelectorAll("#srvSeg button").forEach(btn => btn.addEventListener("click", () => { live.srv = btn.dataset.srv; renderLive(); }));
 $("labPlayer").addEventListener("change", buildLabSliders);
