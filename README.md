@@ -1,15 +1,15 @@
-# Tennis Gap — Player Stats & Match Predictor
+# Tennis Gap — Player Dashboard
 
-A free, no-signup web tool for browsing real tennis stats and predicting matches.
+A free, no-signup, mobile-first dashboard for looking up tennis players and matchups. It is deliberately narrower than a general scores app: type one name for a player dashboard, or two names for a head-to-head.
 
 **Live site:** https://t3riah.github.io/tennis-gap/
 
 ## What it does
 
-- **Player Stats** — compare ATP or WTA players: service points won, return points won, hold and break rates, first/second serve splits, break-point save rates, and recent-form freshness for each player. Every player with at least one charted match is listed; very small samples are labelled as limited.
-- **Match Predictor** — an exact serve-aware probability model (first serve, second serve, and double faults modeled separately) with a confidence range, the key matchup edge explained in plain language, exact set-score probabilities, and a per-surface breakdown.
+- **Player dashboard** — hold and break rates, service/return points won, first- and second-serve splits, return splits, break-point save rate, per-match counting stats, and a by-surface breakdown, all beside tour averages.
+- **Head-to-head** — the same dashboard for two players, plus an exact serve-aware win probability (first serve, second serve, and double faults modeled separately), a likely range, the key matchup edges, matchup-specific serve numbers, per-surface win rates, and set-score probabilities under an expandable section.
 
-Player lists can be browsed alphabetically or sorted by any stat — best servers, best returners, fewest double faults — per surface.
+Player lists are alphabetical and searchable by surname, full name, or the dropdown. Every player with at least one charted match is listed; very small samples are labelled as limited.
 
 ## Data
 
@@ -26,8 +26,6 @@ Two versions together on one page, with a Simple / Pro switch:
 - **Simple** (`infographics/simple.html`) — the plain-language explainer: the Rule of 100 (Hold % + Break %), court surfaces, the wind factor, live warning signs, and favorites vs. underdogs. Includes a working Rule of 100 calculator.
 - **Pro** (`infographics/pro.html`) — what actually drives wins: SPW / RPW and their composite, the 6 serve-split numbers with separate ATP / WTA averages, the per-serve matchup model, and which popular stats are noise.
 
-## Play — the interactive tool
+## Play link
 
-**Live:** https://t3riah.github.io/tennis-gap/play/
-
-One page, three tools, plain words first (exact numbers behind a toggle): **Explore a player** (her real serve stats on sliders — live hold and match strength vs. a tour-average opponent), **Compare a match** (what-if serve sliders on either player, plus the smallest single change that would flip the match), and **Follow live** (score steppers that give the exact win probability from the current score, set and game included). Every player picker pairs a type-to-search field with the full dropdown, and each selection shows how many charted matches support it. It runs on the same validated serve-model math and player data as the predictor.
+The former slider-based Play page has been retired in favor of the single dashboard. https://t3riah.github.io/tennis-gap/play/ now redirects to the dashboard so older links keep working.
