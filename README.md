@@ -25,3 +25,9 @@ Two versions together on one page, with a Simple / Pro switch:
 
 - **Simple** (`infographics/simple.html`) — the plain-language explainer: the Rule of 100 (Hold % + Break %), court surfaces, the wind factor, live warning signs, and favorites vs. underdogs. Includes a working Rule of 100 calculator.
 - **Pro** (`infographics/pro.html`) — what actually drives wins: SPW / RPW and their composite, the 6 serve-split numbers with separate ATP / WTA averages, the per-serve matchup model, and which popular stats are noise.
+
+## Play — the interactive tool
+
+**Live:** https://t3riah.github.io/tennis-gap/play/
+
+One page, three tools, plain words first (exact numbers behind a toggle): **Explore a player** (her real serve stats on sliders — live hold and match strength vs. a tour-average opponent), **Compare a match** (what-if serve sliders on either player, plus the smallest single change that would flip the match), and **Follow live** (score steppers that give the exact win probability from the current score, set and game included). It runs on the same validated serve-model math and player data as the predictor.
