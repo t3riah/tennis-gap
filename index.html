@@ -120,6 +120,16 @@
   .tile .k{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
   .tile .v{font-size:21px;font-weight:750;margin-top:3px}
   tr.current td{background:rgba(96,165,250,.10);font-weight:700}
+  .rank{color:var(--dim);font-size:11px;font-weight:600;white-space:nowrap}
+  .res-row{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .res-row:last-child{border-bottom:none}
+  .res-wl{font-weight:800;width:16px;flex:none}
+  .res-wl.w{color:var(--acc)} .res-wl.l{color:var(--bad)}
+  .res-ev{font-weight:650}
+  .res-meta{color:var(--dim);font-size:12.5px}
+  .res-sc{margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--dim);font-size:12.5px;text-align:right}
+  .res-cols{display:grid;grid-template-columns:1fr 1fr;gap:4px 26px}
+  @media(max-width:640px){.res-cols{grid-template-columns:1fr}}
   details{margin-top:14px}
   details summary{cursor:pointer;color:var(--acc2);font-size:14px;font-weight:700;padding:8px 0}
   .empty{color:var(--dim);font-size:15px;line-height:1.5;padding:18px 4px 6px}
@@ -167,6 +177,7 @@
       <div><label for="p2">Compare with (optional)</label><div class="ac"><input id="p2" autocomplete="off" placeholder="Add another player…"></div></div>
     </div>
     <div class="search-help">Type a surname or full name. Pick one player for a dashboard, or two for a head-to-head.</div>
+    <div class="fresh" id="freshLine"></div>
   </section>
 
   <main id="dashOut"></main>
@@ -181,9 +192,11 @@
 </div>
 
 <script src="profiles.js"></script>
+<script src="results.js"></script>
 <script>
 "use strict";
 const D = window.GAP_DATA;
+const R = window.TENNIS_RESULTS || null;
 if (!D) document.getElementById("fatal").classList.remove("hidden");
 // field indices in each profile array
 const F = {fs_in:0, fs_won:1, df:2, ss_won:3, rpw_fs:4, rpw_ss:5, matches:6, asof:7,
@@ -506,15 +519,93 @@ function sampleNote(res){
 function surfaceLabel(){
   return surface() === "All" ? "All surfaces" : surface();
 }
-function kpisHtml(res){
+/* ---------- tour ranks: where a stat stands among qualified players ----------
+   Pool = players with >=10 charted matches (all surfaces), valued on the
+   currently selected surface with the same fallback rules as the dashboard.
+   Badges appear only for qualified players, so a 2-match fluke never
+   shows up as "1st in WTA". */
+const RANK_MIN = 10;
+let _rankCache = {};
+function allMatches(name){
+  const a = D.tours[tour].All[name];
+  return a ? a[F.matches] : 0;
+}
+function rankPool(){
+  const key = tour + "|" + surface();
+  if (_rankCache[key]) return _rankCache[key];
+  const pool = [];
+  for (const name of Object.keys(D.tours[tour].All)){
+    if (allMatches(name) < RANK_MIN) continue;
+    const res = getProfile(name);
+    if (res) pool.push(statRows(res.p).map(r => r[1]));
+  }
+  return (_rankCache[key] = pool);
+}
+function ordinal(n){
+  const s = ["th", "st", "nd", "rd"], v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+function rankBadge(rowIdx, value, inverse, name){
+  if (value == null || allMatches(name) < RANK_MIN) return "";
+  const pool = rankPool();
+  if (pool.length < 20) return "";
+  let better = 0;
+  for (const vals of pool){
+    const v = vals[rowIdx];
+    if (v == null) continue;
+    if (inverse ? v < value : v > value) better++;
+  }
+  return ` <span class="rank">(${ordinal(better + 1)} in ${tour})</span>`;
+}
+/* ---------- recent results (results archive, separate from charted stats) ---------- */
+function fmtResDate(iso){
+  const parts = String(iso || "").split("-").map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return iso;
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return tour === "ATP" ? `${months[parts[1] - 1]} ${parts[0]}` : `${months[parts[1] - 1]} ${parts[2]}`;
+}
+function recentListHtml(name, n){
+  const lst = (R && R.tours[tour] && R.tours[tour][name]) || [];
+  if (!lst.length) return `<div class="empty">No tour results in the archive for ${name} yet.</div>`;
+  return `<div>${lst.slice(0, n).map(it => `
+    <div class="res-row"><div class="res-wl ${it.w ? "w" : "l"}">${it.w ? "W" : "L"}</div>
+    <div><span class="res-ev">${it.ev}</span> <span class="res-meta">${it.rd} · vs ${it.opp}</span></div>
+    <div class="res-sc">${fmtResDate(it.d)}${it.sc ? " · " + it.sc : ""}${it.note ? " · " + it.note : ""}</div></div>`).join("")}</div>`;
+}
+function recentResultsHtml(name){
+  if (!R || !(R.tours[tour] || {})[name]) return "";
+  const thru = tour === "ATP" ? R.meta.atp_results_through : R.meta.wta_results_through;
+  return `<section class="panel">
+    <h2>Recent results</h2>
+    <div class="panel-sub">Latest matches from the tour results archive (through ${formatDate(thru)}).${tour === "ATP" ? " ATP dates show the tournament month." : ""}</div>
+    ${recentListHtml(name, 8)}
+  </section>`;
+}
+function recentResultsPairHtml(na, nb){
+  if (!R) return "";
+  const thru = tour === "ATP" ? R.meta.atp_results_through : R.meta.wta_results_through;
+  return `<section class="panel">
+    <h2>Recent results</h2>
+    <div class="panel-sub">Latest matches from the tour results archive (through ${formatDate(thru)}).${tour === "ATP" ? " ATP dates show the tournament month." : ""}</div>
+    <div class="res-cols"><div><h3>${na}</h3>${recentListHtml(na, 5)}</div><div><h3>${nb}</h3>${recentListHtml(nb, 5)}</div></div>
+  </section>`;
+}
+function updateFreshLine(){
+  const el = $("freshLine");
+  if (!el) return;
+  if (!R){ el.textContent = ""; return; }
+  const thru = tour === "ATP" ? R.meta.atp_results_through : R.meta.wta_results_through;
+  el.textContent = `${tour} data · charted stats through ${formatDate(R.meta.charting[tour])} · tour results through ${formatDate(thru)}`;
+}
+function kpisHtml(name, res){
   const s = profileSummary(res.p), a = D.avg[tour];
   const avgHold = gameWinProb(a.spw), avgBreak = gameWinProb(a.rpw);
   const tiles = [
-    ["Hold", s.hold, avgHold], ["Break", s.breakPct, avgBreak],
-    ["Service pts won", s.spw, a.spw], ["Return pts won", s.rpw, a.rpw],
+    ["Hold", s.hold, avgHold, 3], ["Break", s.breakPct, avgBreak, 4],
+    ["Service pts won", s.spw, a.spw, 0], ["Return pts won", s.rpw, a.rpw, 1],
   ];
-  return `<div class="kpis">${tiles.map(([label, v, avg]) =>
-    `<div class="kpi"><div class="k">${label}</div><div class="v">${pct(v)}</div><div class="d">${kpiDelta(v, avg)}</div></div>`).join("")}</div>`;
+  return `<div class="kpis">${tiles.map(([label, v, avg, rowIdx]) =>
+    `<div class="kpi"><div class="k">${label}</div><div class="v">${pct(v)}</div><div class="d">${kpiDelta(v, avg)}${rankBadge(rowIdx, v, false, name)}</div></div>`).join("")}</div>`;
 }
 function profileTableHtml(name, res){
   const rows = statRows(res.p), av = avgRows();
@@ -524,7 +615,7 @@ function profileTableHtml(name, res){
     const delta = row[0].startsWith("Composite")
       ? (avg == null ? "—" : `<span class="${v >= avg ? "delta-good" : "delta-bad"}">${v >= avg ? "+" : "−"}${Math.abs(v - avg).toFixed(3)}</span>`)
       : deltaText(v, avg, inv);
-    return `<tr><td>${row[0]}</td><td>${v == null ? "—" : fmt(v)}</td><td>${avg == null ? "—" : fmt(avg)}</td><td>${delta}</td></tr>`;
+    return `<tr><td>${row[0]}</td><td>${v == null ? "—" : fmt(v) + rankBadge(i, v, inv, name)}</td><td>${avg == null ? "—" : fmt(avg)}</td><td>${delta}</td></tr>`;
   }).join("");
   return `<table><tr><th>Stat</th><th>${name}</th><th>Tour avg</th><th>Difference</th></tr>${body}</table>`;
 }
@@ -553,7 +644,7 @@ function singleDashboardHtml(name, res){
     <div class="player-name">${name}</div>
     <div class="meta-line">${res.p[F.matches]} charted matches · latest ${formatDate(res.p[F.asof])}${res.fb ? " · all-surface profile used for this surface" : ""}</div>
     ${sampleNote(res)}
-    ${kpisHtml(res)}
+    ${kpisHtml(name, res)}
   </section>
   <section class="panel">
     <h2>Serve &amp; return</h2>
@@ -569,7 +660,8 @@ function singleDashboardHtml(name, res){
     <h2>By surface</h2>
     <div class="panel-sub">A surface line appears once a player has five charted matches there; otherwise the all-surface profile is used.</div>
     ${surfaceSnapshotHtml(name)}
-  </section>`;
+  </section>
+  ${recentResultsHtml(name)}`;
 }
 
 /* ---------- matchup ---------- */
@@ -605,7 +697,7 @@ function comparisonTableHtml(na, ra, nb, rb){
     if (v1 == null || v2 == null) return "";
     const e1 = inv ? v1 < v2 : v1 > v2, e2 = inv ? v2 < v1 : v2 > v1;
     const fmt = row[0].startsWith("Composite") ? v => v.toFixed(3) : pct;
-    return `<tr><td>${row[0]}</td><td class="${e1 ? "edge" : ""}">${fmt(v1)}</td><td class="${e2 ? "edge" : ""}">${fmt(v2)}</td></tr>`;
+    return `<tr><td>${row[0]}</td><td class="${e1 ? "edge" : ""}">${fmt(v1)}${rankBadge(i, v1, inv, na)}</td><td class="${e2 ? "edge" : ""}">${fmt(v2)}${rankBadge(i, v2, inv, nb)}</td></tr>`;
   }).join("");
   return `<table><tr><th>Stat</th><th>${na}</th><th>${nb}</th></tr>${body}</table>`;
 }
@@ -691,6 +783,7 @@ function matchupDashboardHtml(na, ra, nb, rb){
     ${comparisonTableHtml(na, ra, nb, rb)}
     ${perMatchComparisonHtml(na, ra, nb, rb)}
   </section>
+  ${recentResultsPairHtml(na, nb)}
   <section class="panel">
     <h2>Same matchup, other surfaces</h2>
     ${matchupSurfaceHtml(na, nb, bo)}
@@ -699,6 +792,7 @@ function matchupDashboardHtml(na, ra, nb, rb){
 
 function renderDashboard(){
   const out = $("dashOut");
+  updateFreshLine();
   const showFormat = show => $("formatControl").classList.toggle("hidden", !show);
   if (!D){ showFormat(false); out.innerHTML = ""; return; }
   let n1 = resolveName($("p1").value), n2 = resolveName($("p2").value);
