@@ -185,9 +185,12 @@
   <div class="note">
     Built from hand-charted matches in Jeff Sackmann's Match Charting Project. Recent matches count more,
     and small samples are pulled toward tour averages. Surface-specific numbers appear after five charted
-    matches on that surface; before that, the all-surface profile is used and labelled. Win probability is
-    calculated exactly from first-serve, second-serve, return and double-fault splits — no simulation noise.
-    Stats are informational only, not betting advice.
+    matches on that surface; before that, the all-surface profile is used and labelled. The serve model
+    behind the win probability is calculated exactly from first-serve, second-serve, return and
+    double-fault splits — no simulation noise — and the headline percentage blends it with surface Elo,
+    calibrated on a walk-forward backtest of 5,186 tour matches. For the men, profiles for in-form
+    players come from official ATP match stats instead of charted matches (through-date in the
+    freshness line above). Stats are informational only, not betting advice.
   </div>
 </div>
 
@@ -312,17 +315,56 @@ function matchDist(pA, pB, bestOf){ // distribution over final set scores, keys 
   }
   return rec(0, 0, true);
 }
-function probBand(dA, dB, profA, profB, bo){
-  // One-sigma sensitivity band: nudge each duel by its sampling error,
-  // in the direction that hurts / helps player A, and recompute.
-  const nA = Math.max(60, profA[F.n] || 400), nB = Math.max(60, profB[F.n] || 400);
-  const nD = 2 / (1/nA + 1/nB);
-  const seA = Math.sqrt(dA.spw*(1-dA.spw)/nD), seB = Math.sqrt(dB.spw*(1-dB.spw)/nD);
-  const cp = x => Math.min(0.97, Math.max(0.05, x));
-  return {
-    lo: matchWinProb(cp(dA.spw - seA), cp(dB.spw + seB), bo, true),
-    hi: matchWinProb(cp(dA.spw + seA), cp(dB.spw - seB), bo, true),
+/* ---- Display probability: Elo-primary calibrated blend ----
+   Validated recipe (walk-forward backtest, 5,186 matches, both fit
+   directions): p_display = sigmoid(0.8*logit(p_elo) + 0.2*logit(iso(p_model)))
+   where iso is the isotonic recalibration shipped in D.cal and p_elo is
+   the surface Elo from D.elo (final ratings; a surface rating falls back
+   to the player's overall rating, and "All" uses the overall rating).
+   The old probBand sensitivity range is replaced by the flat calibrated
+   band: +/-3.5 points, or +/-6 for thin pairs. Mirrors wta_gap/blend.py
+   and wta_gap/elo.py; a node port check proves agreement to 1e-9. */
+const CAL = (D && D.cal) || null;
+const SURF_IDX = {Hard: 1, Clay: 2, Grass: 3};
+function isoProb(p){
+  const xs = CAL.x, ys = CAL.y;
+  let v;
+  if (p <= xs[0]) v = ys[0];
+  else if (p >= xs[xs.length - 1]) v = ys[ys.length - 1];
+  else {
+    let i = 0;
+    while (i < xs.length - 2 && xs[i + 1] <= p) i++;
+    const x0 = xs[i], x1 = xs[i + 1], y0 = ys[i], y1 = ys[i + 1];
+    v = x1 === x0 ? y0 : y0 + (y1 - y0) * (p - x0) / (x1 - x0);
+  }
+  return Math.min(1 - 1e-6, Math.max(1e-6, v));
+}
+function eloExpect(ra, rb){ return 1 / (1 + Math.pow(10, -(ra - rb) / 400)); }
+function eloProbRatings(rA, rB, surf){
+  if (!rA || !rB) return 0.5;
+  const idx = SURF_IDX[surf];
+  const eff = r => {
+    if (idx === undefined) return r[0];
+    const s = r[idx];
+    return 0.5 * r[0] + 0.5 * (s == null ? r[0] : s);
   };
+  return eloExpect(eff(rA), eff(rB));
+}
+function eloProb(na, nb, surf){
+  const E = D.elo && D.elo[tour];
+  return eloProbRatings(E && E[na], E && E[nb], surf || surface());
+}
+function blendDisplay(pModel, pElo){
+  if (!CAL) return pModel;
+  const w = CAL.wModel;
+  return sigmoid((1 - w) * logit(pElo) + w * logit(isoProb(pModel)));
+}
+function displayProb(pModel, na, nb, surf){
+  return blendDisplay(pModel, eloProb(na, nb, surf));
+}
+function displayBand(pDisplay, thin){
+  const d = thin ? CAL.bandThin : CAL.band;
+  return { lo: Math.max(0, pDisplay - d), hi: Math.min(1, pDisplay + d) };
 }
 function readLabel(mA, mB){
   const m = Math.min(mA, mB);
@@ -375,9 +417,18 @@ function formatDate(iso){
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   return `${months[parts[1] - 1]} ${parts[2]}, ${parts[0]}`;
 }
+function isOfficial(name, res){
+  // ATP only: profiles sourced from official match stats (overlay).
+  if (tour !== "ATP" || !D.official || !D.official.ATP) return false;
+  const used = res.fb ? "All" : surface();
+  return (D.official.ATP[used] || []).includes(name);
+}
+function profileNoun(name, res){
+  return isOfficial(name, res) ? "official matches" : "charted matches";
+}
 function freshLine(name, res){
   const p = res.p;
-  return `${name}: ${p[F.matches]} charted matches · latest ${formatDate(p[F.asof])}${res.fb ? " · all-surface profile (no "+surface()+" sample)" : ""}`;
+  return `${name}: ${p[F.matches]} ${profileNoun(name, res)} · latest ${formatDate(p[F.asof])}${res.fb ? " · all-surface profile (no "+surface()+" sample)" : ""}`;
 }
 
 /* ---------- autocomplete (combobox: type to filter, or open and scroll) ---------- */
@@ -595,7 +646,9 @@ function updateFreshLine(){
   if (!el) return;
   if (!R){ el.textContent = ""; return; }
   const thru = tour === "ATP" ? R.meta.atp_results_through : R.meta.wta_results_through;
-  el.textContent = `${tour} data · charted stats through ${formatDate(R.meta.charting[tour])} · tour results through ${formatDate(thru)}`;
+  const official = tour === "ATP" && D && D.atpOfficialThrough
+    ? ` · official match stats through ${formatDate(D.atpOfficialThrough)}` : "";
+  el.textContent = `${tour} data · charted stats through ${formatDate(R.meta.charting[tour])}${official} · tour results through ${formatDate(thru)}`;
 }
 function kpisHtml(name, res){
   const s = profileSummary(res.p), a = D.avg[tour];
@@ -642,7 +695,7 @@ function singleDashboardHtml(name, res){
   <section class="panel">
     <div class="panel-sub">${tour} · ${surfaceLabel()}</div>
     <div class="player-name">${name}</div>
-    <div class="meta-line">${res.p[F.matches]} charted matches · latest ${formatDate(res.p[F.asof])}${res.fb ? " · all-surface profile used for this surface" : ""}</div>
+    <div class="meta-line">${res.p[F.matches]} ${profileNoun(name, res)} · latest ${formatDate(res.p[F.asof])}${res.fb ? " · all-surface profile used for this surface" : ""}</div>
     ${sampleNote(res)}
     ${kpisHtml(name, res)}
   </section>
@@ -721,7 +774,7 @@ function matchupSurfaceHtml(na, nb, bo){
     const pa = getProfile(na, s), pb = getProfile(nb, s);
     if (!pa || !pb) return "";
     const d1 = duel(pa.p, pb.p, base), d2 = duel(pb.p, pa.p, base);
-    const pp = matchWinProb(d1.spw, d2.spw, bo, true);
+    const pp = displayProb(matchWinProb(d1.spw, d2.spw, bo, true), na, nb, s);
     const fb = pa.fb || pb.fb;
     return `<div class="cell ${surface() === s ? "cur" : ""}"><div class="s">${s}</div><div class="v">${pct0(pp)}</div><div class="f">${na.split(" ").pop()} win %${fb ? " *" : ""}</div></div>`;
   }).join("");
@@ -746,9 +799,15 @@ function matchupDashboardHtml(na, ra, nb, rb){
   const base = D.base[tour];
   const dA = duel(ra.p, rb.p, base), dB = duel(rb.p, ra.p, base);
   const bo = parseInt($("bestof").value, 10);
-  const pA = matchWinProb(dA.spw, dB.spw, bo, true);
+  const pModel = matchWinProb(dA.spw, dB.spw, bo, true);
+  // Thin-pair proxy: the validation defined "thin" by prior charted
+  // matches; the closest the page's data allows is the match count of
+  // the profile actually used for each player (for ATP official-primary
+  // profiles that count is official matches). Same <5 cutoff.
+  const thin = Math.min(ra.p[F.matches], rb.p[F.matches]) < 5;
+  const pA = displayProb(pModel, na, nb);
   const wA = Math.max(4, Math.min(96, pA * 100));
-  const band = probBand(dA, dB, ra.p, rb.p, bo);
+  const band = displayBand(pA, thin);
   const label = readLabel(ra.p[F.matches], rb.p[F.matches]);
   const why = whyLines(na, nb, dA, dB).map(t => `<div>${t}</div>`).join("");
   const limited = Math.min(ra.p[F.matches], rb.p[F.matches]) < 15
@@ -760,7 +819,8 @@ function matchupDashboardHtml(na, ra, nb, rb){
     <div class="vs" style="margin-top:12px"><div><div class="big" style="color:var(--acc)">${pct0(pA)}</div><div>${na}</div></div>
     <div style="text-align:right"><div class="big" style="color:var(--acc2)">${pct0(1 - pA)}</div><div>${nb}</div></div></div>
     <div class="pbar"><div style="background:var(--acc);width:${wA}%">${pct0(pA)}</div><div style="background:var(--acc2);width:${100 - wA}%">${pct0(1 - pA)}</div></div>
-    <div class="band">Model win probability · likely range for ${na}: <b>${pct0(band.lo)}–${pct0(band.hi)}</b> · ${label}</div>
+    <div class="band">Calibrated win probability · likely range for ${na}: <b>${pct0(band.lo)}–${pct0(band.hi)}</b> · ${label}</div>
+    <div class="note" style="margin-top:6px">The headline blends the serve model with surface Elo, calibrated on a 5,186-match walk-forward backtest. Range based on past accuracy — in about 4 of 5 similar matchups, the true chance fell inside this range.</div>
     <div class="meta-line" style="margin-top:8px">${freshLine(na, ra)}<br>${freshLine(nb, rb)}</div>
     ${limited}
   </section>
