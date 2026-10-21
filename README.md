@@ -16,3 +16,12 @@ Player lists can be browsed alphabetically or sorted by any stat — best server
 Profiles are built from the [Match Charting Project](https://github.com/JeffSackmann/tennis_MatchChartingProject), recency-weighted and shrunk toward tour averages so small samples don't shout. Stats are informational only, not betting advice.
 
 This repo contains only the static site. The full engine lives in a private repository.
+
+## Infographics — Tennis, by the Numbers
+
+**Live:** https://t3riah.github.io/tennis-gap/infographics/
+
+Two versions together on one page, with a Simple / Pro switch:
+
+- **Simple** (`infographics/simple.html`) — the plain-language explainer: the Rule of 100 (Hold % + Break %), court surfaces, the wind factor, live warning signs, and favorites vs. underdogs. Includes a working Rule of 100 calculator.
+- **Pro** (`infographics/pro.html`) — what actually drives wins: SPW / RPW and their composite, the 6 serve-split numbers with separate ATP / WTA averages, the per-serve matchup model, and which popular stats are noise.

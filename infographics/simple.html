@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>Tennis, by the Numbers — An Infographic</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #eef2e4;
+        --bg-deep: #e2ead2;
+        --surface: #fbfcf6;
+        --surface-2: #f1f5e6;
+        --ink: #16281c;
+        --ink-soft: #44584a;
+        --line: #c9d4b4;
+        --court: #1e6b41;
+        --court-deep: #123f27;
+        --ball: #cfe33c;
+        --ball-ink: #2c3a05;
+        --clay: #b4552d;
+        --clay-soft: #f3ddd2;
+        --alert: #b3261e;
+        --alert-soft: #f6dcd9;
+        --gold: #a97b12;
+        --shadow: 0 10px 30px rgba(22, 60, 34, 0.12);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0c1f13;
+          --bg-deep: #08170e;
+          --surface: #14291b;
+          --surface-2: #1a3322;
+          --ink: #eaf2e2;
+          --ink-soft: #a9bfa6;
+          --line: #2c4a33;
+          --court: #2f9e5f;
+          --court-deep: #0a2a18;
+          --ball: #d4ec4a;
+          --ball-ink: #26330a;
+          --clay: #e07a4a;
+          --clay-soft: #3a241a;
+          --alert: #ff8a80;
+          --alert-soft: #3d1f1c;
+          --gold: #e0b84f;
+          --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+        }
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Barlow", system-ui, sans-serif;
+        font-size: 17px;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 0 20px 72px;
+      }
+      h1, h2, h3, .cond { font-family: "Barlow Condensed", "Barlow", sans-serif; }
+      p { margin: 0; }
+
+      /* ---------- Header ---------- */
+      header.hero {
+        background: var(--court-deep);
+        color: #f2f7e9;
+        margin: 0 -20px;
+        padding: 44px max(20px, calc(50% - 470px)) 40px;
+        position: relative;
+        overflow: hidden;
+      }
+      header.hero::after {
+        /* court service line */
+        content: "";
+        position: absolute;
+        left: 0; right: 0; bottom: 0;
+        height: 3px;
+        background: rgba(242, 247, 233, 0.35);
+      }
+      .hero-grid {
+        display: flex;
+        gap: 28px;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+      .hero-copy { max-width: 620px; }
+      .hero h1 {
+        font-size: clamp(2.6rem, 7vw, 4.4rem);
+        line-height: 0.95;
+        margin: 0 0 14px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.01em;
+      }
+      .hero h1 .accent { color: var(--ball); }
+      .hero p.lede {
+        font-size: 1.13rem;
+        color: #cfdfc2;
+        max-width: 34em;
+      }
+      .ball-badge {
+        flex: 0 0 auto;
+        width: 132px; height: 132px;
+        border-radius: 50%;
+        background: var(--ball);
+        color: var(--ball-ink);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        box-shadow: inset -10px -12px 0 rgba(0,0,0,0.08), var(--shadow);
+        transform: rotate(-8deg);
+        position: relative;
+        overflow: hidden;
+      }
+      .ball-badge::before, .ball-badge::after {
+        content: "";
+        position: absolute;
+        width: 60px; height: 60px;
+        border: 3px solid rgba(255,255,255,0.85);
+        border-radius: 50%;
+        top: 50%;
+      }
+      .ball-badge::before { left: -34px; transform: translateY(-50%); }
+      .ball-badge::after { right: -34px; transform: translateY(-50%); }
+      .ball-badge .big {
+        font-family: "Barlow Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 2rem;
+        line-height: 1;
+        position: relative;
+        z-index: 1;
+      }
+      .ball-badge .small {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 0 18px;
+        position: relative;
+        z-index: 1;
+      }
+      .hero-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 22px;
+      }
+      .hero-chips span {
+        border: 1.5px solid rgba(242,247,233,0.4);
+        border-radius: 999px;
+        padding: 5px 14px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #e6efdb;
+      }
+      .hero-chips span b { color: var(--ball); font-weight: 700; }
+
+      /* ---------- Sections ---------- */
+      section.block { margin-top: 52px; }
+      .sec-head {
+        display: flex;
+        align-items: baseline;
+        gap: 16px;
+        margin-bottom: 8px;
+      }
+      .sec-num {
+        font-family: "Barlow Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 2.6rem;
+        line-height: 1;
+        color: var(--court);
+        border-bottom: 5px solid var(--ball);
+        padding-bottom: 2px;
+      }
+      .sec-head h2 {
+        font-size: clamp(1.7rem, 4.5vw, 2.3rem);
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.015em;
+        line-height: 1.05;
+      }
+      .sec-sub {
+        color: var(--ink-soft);
+        max-width: 44em;
+        margin-bottom: 22px;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+      }
+
+      /* ---------- Rule of 100 ---------- */
+      .formula-card { padding: 26px; }
+      .formula {
+        display: flex;
+        align-items: stretch;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .term {
+        flex: 1 1 150px;
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 16px 18px;
+        text-align: center;
+      }
+      .term .num {
+        font-family: "Barlow Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 2.9rem;
+        line-height: 1;
+        color: var(--court);
+      }
+      .term .lbl {
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-size: 0.82rem;
+        margin-top: 4px;
+      }
+      .term .sub { color: var(--ink-soft); font-size: 0.88rem; }
+      .term.total { background: var(--court-deep); border-color: var(--court-deep); }
+      .term.total .num { color: var(--ball); }
+      .term.total .lbl { color: #eef5e2; }
+      .term.total .sub { color: #b9cfae; }
+      .op {
+        align-self: center;
+        font-family: "Barlow Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 2.2rem;
+        color: var(--ink-soft);
+      }
+      .bar-row { margin-top: 34px; }
+      .bar-track {
+        height: 14px;
+        border-radius: 7px;
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        position: relative;
+        overflow: visible;
+      }
+      .bar-fill {
+        height: 100%;
+        border-radius: 7px;
+        background: var(--court);
+        width: 70%;
+        transition: width 0.35s ease;
+      }
+      .bar-fill.elite { background: var(--ball); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); }
+      .bar-marker {
+        position: absolute;
+        top: -7px; bottom: -7px;
+        left: 66.666%;
+        width: 2px;
+        background: var(--ink);
+      }
+      .bar-marker span {
+        position: absolute;
+        top: -24px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.78rem;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .bar-scale {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        color: var(--ink-soft);
+        margin-top: 6px;
+      }
+      .try-it {
+        margin-top: 26px;
+        border-top: 1px dashed var(--line);
+        padding-top: 20px;
+      }
+      .try-it h3 {
+        margin: 0 0 4px;
+        font-size: 1.25rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .try-it p { color: var(--ink-soft); font-size: 0.95rem; margin-bottom: 14px; }
+      .sliders {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px 28px;
+      }
+      .slider-row label {
+        display: flex;
+        justify-content: space-between;
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-bottom: 6px;
+      }
+      .slider-row label output {
+        font-family: "Barlow Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 1.25rem;
+        color: var(--court);
+      }
+      input[type="range"] {
+        width: 100%;
+        accent-color: var(--court);
+        height: 28px;
+        margin: 0;
+      }
+      .verdict {
+        margin-top: 16px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .verdict .score {
+        font-family: "Barlow Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 2.4rem;
+        line-height: 1;
+      }
+      .verdict .tag {
+        font-weight: 700;
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: 0.92rem;
+      }
+      .tag.elite { background: var(--ball); color: var(--ball-ink); }
+      .tag.mid { background: var(--surface-2); color: var(--ink-soft); border: 1px solid var(--line); }
+      .verdict p { color: var(--ink-soft); font-size: 0.95rem; flex: 1 1 220px; }
+
+      /* ---------- Surfaces ---------- */
+      .duo {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      .surface-card { padding: 24px; overflow: hidden; position: relative; }
+      .surface-card h3 {
+        margin: 0 0 2px;
+        font-size: 1.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+      .surface-card .kind {
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+      }
+      .surface-card.fast .kind { color: var(--court); }
+      .surface-card.slow .kind { color: var(--clay); }
+      .surface-card p { margin-top: 10px; color: var(--ink-soft); }
+      .surface-card p b { color: var(--ink); }
+      .speed {
+        margin-top: 18px;
+      }
+      .speed .speed-lbl {
+        display: flex; justify-content: space-between;
+        font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+        color: var(--ink-soft);
+        margin-bottom: 6px;
+      }
+      .speed .track {
+        height: 10px; border-radius: 5px;
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        overflow: hidden;
+      }
+      .speed .fill { height: 100%; }
+      .surface-card.fast .fill { width: 92%; background: var(--court); }
+      .surface-card.slow .fill { width: 34%; background: var(--clay); }
+      .bounce-viz { margin-top: 16px; }
+      .bounce-viz svg { display: block; width: 100%; height: auto; }
+
+      /* ---------- Wind ---------- */
+      .wind-card { padding: 26px; }
+      .wind-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      .wind-side {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 18px;
+        background: var(--surface-2);
+      }
+      .wind-side h3 {
+        margin: 0 0 6px;
+        font-size: 1.3rem;
+        text-transform: uppercase;
+      }
+      .wind-side .verdict-chip {
+        display: inline-block;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        padding: 3px 10px;
+        border-radius: 999px;
+        margin-bottom: 10px;
+      }
+      .wind-side.bad .verdict-chip { background: var(--alert-soft); color: var(--alert); }
+      .wind-side.good .verdict-chip { background: var(--ball); color: var(--ball-ink); }
+      .wind-side p { color: var(--ink-soft); }
+      .wind-side p b { color: var(--ink); }
+      .wind-lines { margin: 0 0 22px; }
+      .wind-lines svg { display: block; width: 100%; height: auto; }
+
+      /* ---------- Live signals ---------- */
+      .signal-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      .signal-card { padding: 24px; }
+      .signal-top {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 6px;
+      }
+      .signal-dot {
+        width: 14px; height: 14px; border-radius: 50%;
+        background: var(--alert);
+        flex: 0 0 auto;
+        box-shadow: 0 0 0 5px var(--alert-soft);
+      }
+      .signal-card h3 {
+        margin: 0;
+        font-size: 1.45rem;
+        text-transform: uppercase;
+      }
+      .signal-card .big-stat {
+        font-family: "Barlow Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 2.6rem;
+        line-height: 1;
+        margin: 10px 0 4px;
+        color: var(--alert);
+      }
+      .signal-card .big-stat small {
+        font-size: 1.1rem;
+        color: var(--ink-soft);
+        font-weight: 600;
+      }
+      .signal-card p { color: var(--ink-soft); }
+      .signal-card p b { color: var(--ink); }
+      .rally-viz { margin-top: 14px; }
+      .rally-viz svg { display: block; width: 100%; height: auto; }
+      .mini-bars { display: flex; align-items: flex-end; gap: 6px; height: 74px; margin-top: 14px; }
+      .mini-bars .mb { flex: 1; border-radius: 4px 4px 0 0; background: var(--surface-2); border: 1px solid var(--line); border-bottom: none; position: relative; }
+      .mini-bars .mb.on { background: var(--alert); border-color: var(--alert); }
+      .mini-bars .mb span {
+        position: absolute; top: -22px; left: 50%; transform: translateX(-50%);
+        font-size: 0.78rem; font-weight: 700; color: var(--ink-soft);
+      }
+      .mini-bars-lbl { display: flex; gap: 6px; font-size: 0.78rem; color: var(--ink-soft); margin-top: 4px; }
+      .mini-bars-lbl span { flex: 1; text-align: center; }
+
+      /* ---------- Favorites vs underdogs ---------- */
+      .vs-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      .vs-card { padding: 24px; }
+      .vs-card .format {
+        font-family: "Barlow Condensed", sans-serif;
+        font-weight: 700;
+        font-size: 3rem;
+        line-height: 1;
+        color: var(--court);
+      }
+      .vs-card.clay-side .format { color: var(--clay); }
+      .vs-card h3 {
+        margin: 6px 0 8px;
+        font-size: 1.4rem;
+        text-transform: uppercase;
+      }
+      .vs-card p { color: var(--ink-soft); }
+      .vs-card p b { color: var(--ink); }
+      .sets { display: flex; gap: 6px; margin-top: 16px; }
+      .sets i {
+        width: 34px; height: 10px; border-radius: 5px;
+        background: var(--court);
+        display: block;
+      }
+      .vs-card.clay-side .sets i { background: var(--clay); }
+      .sets i.dim { opacity: 0.25; }
+
+      /* ---------- Footer takeaway ---------- */
+      .takeaway {
+        margin-top: 56px;
+        background: var(--court-deep);
+        color: #eef5e2;
+        border-radius: 14px;
+        padding: 30px 28px;
+        text-align: center;
+      }
+      .takeaway .cond {
+        font-size: clamp(1.5rem, 4vw, 2.1rem);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        line-height: 1.15;
+        margin: 0 0 8px;
+      }
+      .takeaway p { color: #b9cfae; max-width: 38em; margin: 0 auto; }
+      .takeaway .accent { color: var(--ball); }
+      footer.note {
+        margin-top: 22px;
+        text-align: center;
+        color: var(--ink-soft);
+        font-size: 0.88rem;
+      }
+
+      @media (max-width: 680px) {
+        .duo, .wind-grid, .signal-grid, .vs-grid, .sliders { grid-template-columns: 1fr; }
+        .ball-badge { width: 110px; height: 110px; }
+        .formula { flex-direction: column; }
+        .op { transform: rotate(90deg); margin: -4px auto; }
+        header.hero { padding-top: 34px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html { scroll-behavior: auto; }
+        .bar-fill { transition: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="hero">
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <h1>Tennis is a<br /><span class="accent">game of statistics</span></h1>
+            <p class="lede">
+              Two players, taking turns serving and returning. That simple structure makes
+              tennis one of the easiest sports to read with data — if you know which
+              numbers to watch.
+            </p>
+            <div class="hero-chips">
+              <span><b>2</b> players</span>
+              <span><b>Serve</b> + <b>return</b>, back and forth</span>
+              <span><b>5</b> patterns smart bettors track</span>
+            </div>
+          </div>
+          <div class="ball-badge" aria-hidden="true">
+            <span class="big">100</span>
+            <span class="small">The number that matters</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- 1 · Core numbers -->
+      <section class="block" id="core">
+        <div class="sec-head">
+          <span class="sec-num">1</span>
+          <h2>The Core Numbers — Hold + Break</h2>
+        </div>
+        <p class="sec-sub">
+          Every game comes down to one of two outcomes: you <b>hold</b> (win your own serve)
+          or you <b>break</b> (win when the other player serves). Add the two rates together
+          and you get the single most useful number in tennis.
+        </p>
+
+        <div class="card formula-card">
+          <div class="formula" aria-label="Example: 80 percent hold plus 25 percent break equals 105">
+            <div class="term">
+              <div class="num">80%</div>
+              <div class="lbl">Hold %</div>
+              <div class="sub">Service games won</div>
+            </div>
+            <div class="op">+</div>
+            <div class="term">
+              <div class="num">25%</div>
+              <div class="lbl">Break %</div>
+              <div class="sub">Return games won</div>
+            </div>
+            <div class="op">=</div>
+            <div class="term total">
+              <div class="num">105</div>
+              <div class="lbl">Rule of 100 score</div>
+              <div class="sub">Over 100 = elite</div>
+            </div>
+          </div>
+
+          <div class="bar-row" aria-hidden="true">
+            <div class="bar-track">
+              <div class="bar-fill elite" style="width:70%"></div>
+              <div class="bar-marker"><span>100 — the elite line</span></div>
+            </div>
+            <div class="bar-scale"><span>0</span><span>100 = the elite line</span><span>150</span></div>
+          </div>
+
+          <div class="try-it">
+            <h3>Try it yourself</h3>
+            <p>Drag the sliders to score any player. Cross 100 and they hold a real edge over the average field.</p>
+            <div class="sliders">
+              <div class="slider-row">
+                <label for="hold">Hold % — service games won <output id="holdOut" for="hold">80%</output></label>
+                <input type="range" id="hold" min="40" max="95" step="1" value="80" />
+              </div>
+              <div class="slider-row">
+                <label for="brk">Break % — return games won <output id="brkOut" for="brk">25%</output></label>
+                <input type="range" id="brk" min="5" max="50" step="1" value="25" />
+              </div>
+            </div>
+            <div class="verdict" aria-live="polite">
+              <span class="score" id="verdictScore">105</span>
+              <span class="tag elite" id="verdictTag">Elite — over 100</span>
+              <p id="verdictText">A high-level player with a big advantage over the average field.</p>
+            </div>
+            <div class="bar-row" aria-hidden="true">
+              <div class="bar-track">
+                <div class="bar-fill elite" id="liveBar" style="width:70%"></div>
+                <div class="bar-marker" style="left:52.38%"><span>100</span></div>
+              </div>
+              <div class="bar-scale"><span>45</span><span>150</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2 · Surface -->
+      <section class="block" id="surface">
+        <div class="sec-head">
+          <span class="sec-num">2</span>
+          <h2>Court Surface Matters — A Lot</h2>
+        </div>
+        <p class="sec-sub">
+          A player who is great on one court might be terrible on another. Always check
+          the surface before trusting the stats.
+        </p>
+
+        <div class="duo">
+          <article class="card surface-card fast">
+            <span class="kind">Fast courts</span>
+            <h3>Grass &amp; Indoor Hard</h3>
+            <p>
+              The ball <b>skids fast and bounces low</b>, giving the returner barely any
+              time to react. <b>Big servers dominate</b> here — cheap points, short rallies,
+              holds come easily.
+            </p>
+            <div class="bounce-viz" aria-hidden="true">
+              <svg viewBox="0 0 300 70" role="img">
+                <line x1="6" y1="58" x2="294" y2="58" stroke="var(--line)" stroke-width="3" />
+                <path d="M10 14 Q 90 30 150 56 Q 210 30 290 24" fill="none" stroke="var(--court)" stroke-width="3" stroke-linecap="round" />
+                <circle cx="150" cy="56" r="5" fill="var(--ball)" stroke="var(--court)" stroke-width="2" />
+              </svg>
+            </div>
+            <div class="speed">
+              <div class="speed-lbl"><span>Ball speed off the court</span><span>Fast</span></div>
+              <div class="track"><div class="fill"></div></div>
+            </div>
+          </article>
+
+          <article class="card surface-card slow">
+            <span class="kind">Slow courts</span>
+            <h3>Clay</h3>
+            <p>
+              The ball <b>bounces high and slows down</b>, blunting big serves. Players who
+              can <b>run all day, play long points, and break serve</b> do much better here.
+            </p>
+            <div class="bounce-viz" aria-hidden="true">
+              <svg viewBox="0 0 300 70" role="img">
+                <line x1="6" y1="58" x2="294" y2="58" stroke="var(--line)" stroke-width="3" />
+                <path d="M10 30 Q 80 44 140 56 Q 190 8 250 30 Q 275 40 292 34" fill="none" stroke="var(--clay)" stroke-width="3" stroke-linecap="round" />
+                <circle cx="140" cy="56" r="5" fill="var(--ball)" stroke="var(--clay)" stroke-width="2" />
+              </svg>
+            </div>
+            <div class="speed">
+              <div class="speed-lbl"><span>Ball speed off the court</span><span>Slow</span></div>
+              <div class="track"><div class="fill"></div></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- 3 · Wind -->
+      <section class="block" id="wind">
+        <div class="sec-head">
+          <span class="sec-num">3</span>
+          <h2>The “Wind” Factor</h2>
+        </div>
+        <p class="sec-sub">
+          One of the most hidden secrets in tennis betting. Wind doesn't hurt everyone
+          equally — it punishes a certain kind of swing.
+        </p>
+
+        <div class="card wind-card">
+          <div class="wind-lines" aria-hidden="true">
+            <svg viewBox="0 0 600 54" role="img">
+              <g fill="none" stroke="var(--court)" stroke-width="3" stroke-linecap="round" opacity="0.75">
+                <path d="M8 14 H 300 a12 12 0 1 0 -12 -12" />
+                <path d="M40 30 H 420 a12 12 0 1 1 -12 12" />
+                <path d="M8 46 H 240" />
+              </g>
+              <circle cx="540" cy="27" r="11" fill="var(--ball)" stroke="var(--court)" stroke-width="2.5" />
+              <path d="M500 10 q 14 8 6 17 M 506 44 q 12 -8 4 -17" fill="none" stroke="var(--court)" stroke-width="2.5" stroke-linecap="round" opacity="0.6" />
+            </svg>
+          </div>
+          <div class="wind-grid">
+            <div class="wind-side bad">
+              <h3>Long, fancy swings</h3>
+              <span class="verdict-chip">Struggle in wind</span>
+              <p>
+                A big, looping swing has <b>more moving parts and more room for error</b> —
+                gusts push the ball around mid-swing, and clean contact becomes a coin flip.
+              </p>
+            </div>
+            <div class="wind-side good">
+              <h3>Short, simple, flat swings</h3>
+              <span class="verdict-chip">Thrive in wind</span>
+              <p>
+                A compact swing means <b>less time for the wind to interfere</b>. These
+                players keep hitting clean balls while flashier opponents spray errors.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4 · Live warning signs -->
+      <section class="block" id="live">
+        <div class="sec-head">
+          <span class="sec-num">4</span>
+          <h2>Watching Live for “Warning Signs”</h2>
+        </div>
+        <p class="sec-sub">
+          During a live match the odds move after every point. Smart observers spot the
+          shift <b>before</b> the scoreboard does.
+        </p>
+
+        <div class="signal-grid">
+          <article class="card signal-card">
+            <div class="signal-top">
+              <span class="signal-dot" aria-hidden="true"></span>
+              <h3>Signal 1 — The Tired Serve</h3>
+            </div>
+            <div class="big-stat">&lt; 55% <small>first-serve accuracy</small></div>
+            <p>
+              If a server's first-serve accuracy drops below 55% <b>two games in a row</b>,
+              they're usually getting tired or nervous. More second serves means more
+              chances to attack — <b>a break is likely coming soon</b>.
+            </p>
+            <div class="mini-bars" aria-hidden="true">
+              <div class="mb" style="height:78%"><span>68%</span></div>
+              <div class="mb" style="height:72%"><span>64%</span></div>
+              <div class="mb on" style="height:56%"><span>52%</span></div>
+              <div class="mb on" style="height:52%"><span>49%</span></div>
+            </div>
+            <div class="mini-bars-lbl" aria-hidden="true">
+              <span>Game 1</span><span>Game 2</span><span>Game 3</span><span>Game 4</span>
+            </div>
+          </article>
+
+          <article class="card signal-card">
+            <div class="signal-top">
+              <span class="signal-dot" aria-hidden="true"></span>
+              <h3>Signal 2 — Longer Rallies</h3>
+            </div>
+            <div class="big-stat">3–4 → 8–10 <small>shots per point</small></div>
+            <p>
+              If points suddenly start lasting <b>8 to 10 shots instead of 3 or 4</b>, the
+              returner has figured out the server's timing. The serve is no longer a
+              weapon — <b>the match is turning</b>.
+            </p>
+            <div class="rally-viz" aria-hidden="true">
+              <svg viewBox="0 0 300 74" role="img">
+                <polyline points="8,58 60,54 112,60 164,50 216,26 268,14 292,10" fill="none" stroke="var(--alert)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                <g fill="var(--alert)">
+                  <circle cx="8" cy="58" r="4" /><circle cx="60" cy="54" r="4" /><circle cx="112" cy="60" r="4" />
+                  <circle cx="164" cy="50" r="4" /><circle cx="216" cy="26" r="4" /><circle cx="268" cy="14" r="4" />
+                </g>
+                <text x="8" y="12" font-size="9.5" font-weight="700" fill="var(--ink-soft)" textLength="282" lengthAdjust="spacingAndGlyphs">LONGER RALLIES = THE READ IS ON</text>
+              </svg>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- 5 · Favorites vs underdogs -->
+      <section class="block" id="format">
+        <div class="sec-head">
+          <span class="sec-num">5</span>
+          <h2>Favorites vs. Underdogs</h2>
+        </div>
+        <p class="sec-sub">
+          Match length changes everything. The longer the match, the more the better
+          player's edge has time to show.
+        </p>
+
+        <div class="vs-grid">
+          <article class="card vs-card">
+            <div class="format">Best of 5</div>
+            <h3>Men's Grand Slams — Back the Favorite</h3>
+            <p>
+              In best-of-5 set matches — the men's Grand Slam format — the top-ranked
+              players <b>almost always win</b>: more sets means more time to
+              <b>recover from mistakes</b> and let the class gap tell.
+            </p>
+            <div class="sets" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+          </article>
+
+          <article class="card vs-card clay-side">
+            <div class="format">Best of 3</div>
+            <h3>Smaller Events — Underdogs Live</h3>
+            <p>
+              In best-of-3, there's far less margin: <b>one bad 10-minute stretch</b> can
+              cost a top player the entire match. Underdogs have a <b>real chance</b> in
+              the short format.
+            </p>
+            <div class="sets" aria-hidden="true"><i></i><i></i><i></i><i class="dim"></i><i class="dim"></i></div>
+          </article>
+        </div>
+      </section>
+
+      <div class="takeaway">
+        <p class="cond">Read the numbers <span class="accent">before</span> the scoreboard moves</p>
+        <p>
+          Hold + Break over 100 · check the surface · respect the wind · watch the serve
+          and the rallies live · and match your pick to the format.
+        </p>
+      </div>
+
+      <footer class="note">
+        A plain-language guide to the patterns in the source notes — educational, not betting advice.
+      </footer>
+    </div>
+
+    <script>
+      (function () {
+        var hold = document.getElementById("hold");
+        var brk = document.getElementById("brk");
+        var holdOut = document.getElementById("holdOut");
+        var brkOut = document.getElementById("brkOut");
+        var score = document.getElementById("verdictScore");
+        var tag = document.getElementById("verdictTag");
+        var text = document.getElementById("verdictText");
+        var bar = document.getElementById("liveBar");
+
+        function update() {
+          var h = parseInt(hold.value, 10);
+          var b = parseInt(brk.value, 10);
+          var total = h + b;
+          holdOut.textContent = h + "%";
+          brkOut.textContent = b + "%";
+          score.textContent = total;
+
+          var pct = ((total - 45) / (150 - 45)) * 100;
+          pct = Math.max(0, Math.min(100, pct));
+          bar.style.width = pct + "%";
+
+          if (total > 100) {
+            tag.textContent = "Elite — over 100";
+            tag.className = "tag elite";
+            bar.className = "bar-fill elite";
+            text.textContent = "A high-level player with a big advantage over the average field.";
+          } else if (total === 100) {
+            tag.textContent = "Right on the line";
+            tag.className = "tag mid";
+            bar.className = "bar-fill";
+            text.textContent = "Exactly at the elite threshold — no clear edge either way.";
+          } else {
+            tag.textContent = "Below 100";
+            tag.className = "tag mid";
+            bar.className = "bar-fill";
+            text.textContent = "Below the elite line — the average field has the edge here.";
+          }
+        }
+
+        hold.addEventListener("input", update);
+        brk.addEventListener("input", update);
+        update();
+      })();
+    </script>
+  </body>
+</html>

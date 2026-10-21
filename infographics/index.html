@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Tennis, by the Numbers — Simple &amp; Pro Infographics</title>
+<style>
+  :root{
+    --bg:#eef2e4; --surface:#fbfcf6; --ink:#16281c; --ink-soft:#44584a;
+    --line:#c9d4b4; --court:#1e6b41; --court-deep:#123f27; --ball:#cfe33c; --ball-ink:#2c3a05;
+    --shadow:0 10px 30px rgba(22,60,34,.12);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0c1f13; --surface:#14291b; --ink:#eaf2e2; --ink-soft:#a9bfa6;
+      --line:#2c4a33; --court:#2f9e5f; --court-deep:#0a2a18; --ball:#d4ec4a; --ball-ink:#26330a;
+      --shadow:0 10px 30px rgba(0,0,0,.45);
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:1100px;margin:0 auto;padding:20px 16px 28px}
+  h1{font-size:clamp(26px,5vw,40px);line-height:1.05;margin:6px 0 8px}
+  .sub{color:var(--ink-soft);font-size:17px;line-height:1.45;max-width:720px}
+  .back{display:inline-block;margin-bottom:10px;color:var(--court);font-weight:600;text-decoration:none;font-size:15px}
+  .toggle{display:flex;gap:10px;margin:22px 0 12px;flex-wrap:wrap}
+  .toggle button{
+    flex:1;min-width:150px;min-height:54px;border-radius:12px;border:2px solid var(--line);
+    background:var(--surface);color:var(--ink);font-size:17px;font-weight:700;cursor:pointer;padding:10px 14px;
+  }
+  .toggle button small{display:block;font-size:13px;font-weight:500;color:var(--ink-soft);margin-top:2px}
+  .toggle button.on{background:var(--ball);color:var(--ball-ink);border-color:var(--ball)}
+  .toggle button.on small{color:var(--ball-ink);opacity:.75}
+  .actions{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:4px 0 12px;font-size:15px}
+  .actions a{color:var(--court);font-weight:600}
+  .framebox{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+  iframe{display:block;width:100%;height:78vh;min-height:560px;border:0;background:var(--surface)}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+  @media (max-width:640px){.cards{grid-template-columns:1fr} iframe{height:74vh;min-height:480px}}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .card h2{margin:0 0 6px;font-size:19px}
+  .card p{margin:0 0 10px;color:var(--ink-soft);line-height:1.45;font-size:15px}
+  .card a{color:var(--court);font-weight:700;text-decoration:none}
+  .foot{color:var(--ink-soft);font-size:13px;margin-top:18px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../index.html">&larr; Back to Tennis Gap — player stats &amp; match predictor</a>
+  <h1>🎾 Tennis, by the Numbers</h1>
+  <p class="sub">Two versions of the same guide, side by side. <strong>Simple</strong> explains tennis stats in plain language. <strong>Pro</strong> shows the numbers that actually drive wins. Tap a version to read it below, or open it full-screen.</p>
+
+  <div class="toggle" role="tablist" aria-label="Choose infographic version">
+    <button id="btnSimple" class="on" onclick="showVersion('simple')">Simple version<small>Rule of 100, surfaces, wind, live signs</small></button>
+    <button id="btnPro" onclick="showVersion('pro')">Pro version<small>SPW / RPW, 6 numbers, matchup model</small></button>
+  </div>
+
+  <div class="actions">
+    <a id="openFull" href="simple.html" target="_blank" rel="noopener">Open this version full-screen ↗</a>
+    <span aria-hidden="true">·</span>
+    <a href="simple.html">Simple full page</a>
+    <a href="pro.html">Pro full page</a>
+  </div>
+
+  <div class="framebox">
+    <iframe id="viewer" src="simple.html" title="Tennis infographic viewer"></iframe>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <h2>Simple — start here</h2>
+      <p>The friendly explainer: Hold % + Break % and the Rule of 100, why surface matters, the wind factor, live warning signs, and favorites vs. underdogs.</p>
+      <a href="simple.html">Open Simple full-screen ↗</a>
+    </div>
+    <div class="card">
+      <h2>Pro — the accurate version</h2>
+      <p>What actually predicts: service &amp; return points won, the 6 serve-split numbers (with separate ATP / WTA averages), the matchup model, and which popular stats are just noise.</p>
+      <a href="pro.html">Open Pro full-screen ↗</a>
+    </div>
+  </div>
+
+  <p class="foot">Part of Tennis Gap — player stats &amp; match predictions from real charted-match data. Simple and Pro are two readings of the same game: start simple, go pro when you want the real drivers.</p>
+</div>
+<script>
+  function showVersion(v){
+    var isSimple = v === 'simple';
+    document.getElementById('viewer').src = isSimple ? 'simple.html' : 'pro.html';
+    document.getElementById('btnSimple').classList.toggle('on', isSimple);
+    document.getElementById('btnPro').classList.toggle('on', !isSimple);
+    var full = document.getElementById('openFull');
+    full.href = isSimple ? 'simple.html' : 'pro.html';
+  }
+  // Deep link: infographics/#pro or infographics/#simple
+  if (location.hash.replace('#','') === 'pro') showVersion('pro');
+</script>
+</body>
+</html>

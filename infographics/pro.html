@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>What Actually Drives Wins in Tennis — Pro Version</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0a0e0c;
+        --bg2: #0e1411;
+        --panel: #131a16;
+        --panel2: #18211c;
+        --line: #26332b;
+        --line-soft: #1c2721;
+        --ink: #e9f0ea;
+        --ink-dim: #a7b8ab;
+        --ink-faint: #71816f;
+        --accent: #c8f04b;
+        --accent-dim: #9dc22e;
+        --atp: #6fb1e8;
+        --atp-soft: rgba(111, 177, 232, .14);
+        --wta: #f09468;
+        --wta-soft: rgba(240, 148, 104, .14);
+        --noise: #5d6a5e;
+        --shadow: 0 18px 40px rgba(0,0,0,.45);
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          color-scheme: light;
+          --bg: #eef1ec;
+          --bg2: #e6eae3;
+          --panel: #ffffff;
+          --panel2: #f4f7f2;
+          --line: #c9d4c6;
+          --line-soft: #dde4da;
+          --ink: #131c16;
+          --ink-dim: #45544a;
+          --ink-faint: #75836f;
+          --accent: #5d8400;
+          --accent-dim: #4c6d00;
+          --atp: #1d6fc4;
+          --atp-soft: rgba(29, 111, 196, .10);
+          --wta: #c85a24;
+          --wta-soft: rgba(200, 90, 36, .10);
+          --noise: #8a968a;
+          --shadow: 0 14px 30px rgba(30,50,35,.12);
+        }
+      }
+      * { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(1100px 500px at 85% -10%, rgba(200,240,75,.07), transparent 60%),
+          linear-gradient(180deg, var(--bg2), var(--bg) 340px);
+        color: var(--ink);
+        font-family: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+        line-height: 1.5;
+      }
+      .mono { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .wrap { max-width: 1060px; margin: 0 auto; padding: 0 20px 64px; }
+
+      /* ---------- Hero ---------- */
+      header.hero { padding: 44px 0 8px; }
+      .kicker {
+        display: inline-flex; align-items: center; gap: 10px;
+        font-family: "IBM Plex Mono", monospace; font-size: 12px; font-weight: 600;
+        letter-spacing: .22em; text-transform: uppercase; color: var(--accent);
+      }
+      .kicker::before { content: ""; width: 26px; height: 2px; background: var(--accent); }
+      .kicker .pro {
+        background: var(--accent); color: #10160a; padding: 2px 8px; border-radius: 3px;
+        letter-spacing: .14em;
+      }
+      @media (prefers-color-scheme: light) { .kicker .pro { color: #fff; } }
+      h1 {
+        margin: 16px 0 0; font-size: clamp(34px, 6.4vw, 58px); line-height: 1.02;
+        font-weight: 900; letter-spacing: -.015em; max-width: 15ch;
+      }
+      .subtitle {
+        margin: 16px 0 0; font-size: clamp(17px, 2.6vw, 21px); color: var(--ink-dim);
+        max-width: 56ch; font-weight: 500;
+      }
+      .subtitle strong { color: var(--ink); }
+      .hero-stats {
+        margin-top: 30px; display: grid; grid-template-columns: repeat(3, 1fr);
+        border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+        background: var(--panel); box-shadow: var(--shadow);
+      }
+      .hstat { padding: 18px 20px 16px; }
+      .hstat + .hstat { border-left: 1px solid var(--line-soft); }
+      .hstat .num { font-family: "IBM Plex Mono", monospace; font-size: clamp(26px, 4.4vw, 38px); font-weight: 700; letter-spacing: -.02em; line-height: 1; }
+      .hstat .lbl { margin-top: 8px; font-size: 12.5px; color: var(--ink-dim); line-height: 1.45; }
+      .hstat .lbl b { color: var(--ink); font-weight: 600; }
+      .hstat.atp .num { color: var(--atp); }
+      .hstat.wta .num { color: var(--wta); }
+      .hstat.comp .num { color: var(--accent); }
+
+      /* ---------- Sections ---------- */
+      section { margin-top: 52px; }
+      .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 18px; }
+      .sec-no {
+        font-family: "IBM Plex Mono", monospace; font-size: 13px; font-weight: 700;
+        color: #10160a; background: var(--accent); padding: 3px 9px; border-radius: 3px;
+        letter-spacing: .08em; white-space: nowrap;
+      }
+      @media (prefers-color-scheme: light) { .sec-no { color: #fff; } }
+      h2 { margin: 0; font-size: clamp(23px, 3.6vw, 31px); font-weight: 800; letter-spacing: -.01em; line-height: 1.12; }
+      .sec-sub { margin: 6px 0 0 0; color: var(--ink-dim); font-size: 15.5px; max-width: 68ch; }
+      .sec-sub strong { color: var(--ink); }
+
+      .panel {
+        background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+        box-shadow: var(--shadow);
+      }
+
+      /* ---------- Section 1: primitives ---------- */
+      .prim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      .prim { padding: 22px 22px 20px; }
+      .prim .tag {
+        font-family: "IBM Plex Mono", monospace; font-size: 12px; font-weight: 700;
+        letter-spacing: .18em; color: var(--accent);
+      }
+      .prim h3 { margin: 8px 0 4px; font-size: 21px; font-weight: 800; line-height: 1.15; }
+      .prim h3 .abbr { color: var(--ink-faint); font-weight: 600; }
+      .prim p { margin: 0 0 16px; font-size: 14.5px; color: var(--ink-dim); }
+      .split-row { margin-top: 10px; }
+      .split-row .sr-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; margin-bottom: 5px; }
+      .split-row .sr-head .tour { font-family: "IBM Plex Mono", monospace; font-weight: 700; letter-spacing: .1em; }
+      .split-row .sr-head .val { font-family: "IBM Plex Mono", monospace; font-weight: 600; }
+      .bar { height: 10px; border-radius: 5px; background: var(--panel2); border: 1px solid var(--line-soft); overflow: hidden; }
+      .bar i { display: block; height: 100%; border-radius: 5px 0 0 5px; }
+      .bar.atp i { background: var(--atp); }
+      .bar.wta i { background: var(--wta); }
+      .tour-atp { color: var(--atp); } .tour-wta { color: var(--wta); }
+
+      .equation {
+        margin-top: 16px; padding: 20px 22px; display: flex; flex-wrap: wrap;
+        align-items: center; gap: 10px 16px;
+      }
+      .equation .eq {
+        font-family: "IBM Plex Mono", monospace; font-size: clamp(17px, 3vw, 23px); font-weight: 700;
+      }
+      .equation .eq .op { color: var(--ink-faint); font-weight: 400; }
+      .equation .eq .res { color: var(--accent); }
+      .equation .note { font-size: 14px; color: var(--ink-dim); max-width: 46ch; }
+
+      .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+      .limit, .examples { padding: 20px 22px; }
+      .limit h4, .examples h4 {
+        margin: 0 0 12px; font-size: 13px; font-weight: 700; letter-spacing: .14em;
+        text-transform: uppercase; color: var(--ink-dim);
+        font-family: "IBM Plex Mono", monospace;
+      }
+      .limit ul { margin: 0; padding: 0; list-style: none; }
+      .limit li { padding: 8px 0 8px 20px; position: relative; font-size: 14.5px; color: var(--ink-dim); border-top: 1px solid var(--line-soft); }
+      .limit li:first-child { border-top: none; padding-top: 2px; }
+      .limit li::before { content: "×"; position: absolute; left: 0; top: 7px; color: var(--wta); font-weight: 700; }
+      .limit li strong { color: var(--ink); }
+      .ex-row { display: flex; align-items: baseline; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line-soft); }
+      .ex-row:first-of-type { border-top: none; padding-top: 2px; }
+      .ex-row .who { font-weight: 700; font-size: 15.5px; white-space: nowrap; }
+      .ex-row .fig { font-family: "IBM Plex Mono", monospace; font-size: 14px; color: var(--ink-dim); }
+      .ex-row .fig b { color: var(--ink); font-weight: 600; }
+      .ex-row .verdict { margin-left: auto; text-align: right; font-size: 13px; color: var(--ink-dim); max-width: 24ch; }
+      .ex-row .verdict .big { display: block; font-family: "IBM Plex Mono", monospace; font-size: 20px; font-weight: 700; color: var(--accent); }
+
+      .warn {
+        margin-top: 16px; padding: 16px 20px; border: 1px dashed var(--line); border-radius: 10px;
+        font-size: 15px; color: var(--ink-dim); background: var(--panel2);
+      }
+      .warn strong { color: var(--ink); }
+      .warn .mono { color: var(--wta); font-weight: 600; }
+      .warn .mono.atp-c { color: var(--atp); }
+
+      /* ---------- Section 2: the six numbers ---------- */
+      .tour-toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
+      .tour-toggle button {
+        appearance: none; border: 0; background: var(--panel); color: var(--ink-dim);
+        font-family: "IBM Plex Mono", monospace; font-size: 13px; font-weight: 600;
+        padding: 8px 16px; cursor: pointer; letter-spacing: .06em;
+      }
+      .tour-toggle button[aria-pressed="true"] { background: var(--accent); color: #10160a; }
+      @media (prefers-color-scheme: light) { .tour-toggle button[aria-pressed="true"] { color: #fff; } }
+      .tour-toggle button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+      .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); box-shadow: var(--shadow); }
+      table.six { width: 100%; border-collapse: collapse; min-width: 560px; }
+      table.six th, table.six td { padding: 13px 16px; text-align: left; vertical-align: top; }
+      table.six thead th {
+        font-family: "IBM Plex Mono", monospace; font-size: 11.5px; font-weight: 700;
+        letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint);
+        border-bottom: 1px solid var(--line); background: var(--panel2);
+      }
+      table.six thead th.num, table.six td.num { text-align: right; }
+      table.six tbody tr + tr td { border-top: 1px solid var(--line-soft); }
+      table.six tbody tr.grp td {
+        background: var(--panel2); font-family: "IBM Plex Mono", monospace; font-size: 11.5px;
+        font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-dim);
+        padding: 9px 16px;
+      }
+      table.six td.idx { font-family: "IBM Plex Mono", monospace; color: var(--ink-faint); font-weight: 600; width: 34px; }
+      table.six td.stat .name { font-weight: 700; font-size: 15.5px; display: block; }
+      table.six td.stat .desc { font-size: 13px; color: var(--ink-dim); display: block; margin-top: 1px; }
+      table.six td.code { font-family: "IBM Plex Mono", monospace; font-size: 13.5px; color: var(--accent-dim); font-weight: 600; white-space: nowrap; }
+      @media (prefers-color-scheme: dark) { table.six td.code { color: var(--accent); } }
+      table.six td.num { font-family: "IBM Plex Mono", monospace; font-size: 17px; font-weight: 700; white-space: nowrap; }
+      table.six td.num small { display: block; font-size: 11px; font-weight: 500; color: var(--ink-faint); letter-spacing: .04em; }
+      table.six td.num.atp-c { color: var(--atp); }
+      table.six td.num.wta-c { color: var(--wta); }
+      body[data-tour="atp"] table.six td.num.wta-c { opacity: .38; }
+      body[data-tour="wta"] table.six td.num.atp-c { opacity: .38; }
+      body[data-tour="atp"] table.six td.num.atp-c,
+      body[data-tour="wta"] table.six td.num.wta-c { font-size: 19px; }
+
+      .callout {
+        margin-top: 16px; padding: 20px 22px; border: 1px solid var(--accent-dim);
+        border-radius: 10px; background: var(--panel); display: flex; gap: 18px; align-items: flex-start;
+      }
+      .callout .glyph {
+        font-family: "IBM Plex Mono", monospace; font-weight: 700; font-size: 22px;
+        color: #10160a; background: var(--accent); border-radius: 6px; padding: 4px 11px; line-height: 1.2;
+        flex: none;
+      }
+      @media (prefers-color-scheme: light) { .callout .glyph { color: #fff; } }
+      .callout p { margin: 0; font-size: 15.5px; color: var(--ink-dim); }
+      .callout p strong { color: var(--ink); }
+      .callout .mono { color: var(--accent-dim); font-weight: 600; }
+      @media (prefers-color-scheme: dark) { .callout .mono { color: var(--accent); } }
+
+      /* ---------- Section 3: matchup ---------- */
+      .matchup { padding: 24px 22px 20px; }
+      .mu-row { padding: 16px 0; }
+      .mu-row + .mu-row { border-top: 1px solid var(--line-soft); }
+      .mu-label { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+      .mu-label .t { font-weight: 800; font-size: 16.5px; }
+      .mu-label .t .mono { font-size: 13px; color: var(--ink-faint); font-weight: 600; }
+      .mu-label .gap { font-family: "IBM Plex Mono", monospace; font-size: 13px; color: var(--ink-dim); white-space: nowrap; }
+      .mu-label .gap b { color: var(--ink); }
+      .versus { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; }
+      .side .who { font-size: 12px; font-family: "IBM Plex Mono", monospace; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 5px; }
+      .side .val { font-family: "IBM Plex Mono", monospace; font-size: clamp(19px, 3.4vw, 25px); font-weight: 700; line-height: 1.1; }
+      .side .val small { font-size: 12px; color: var(--ink-faint); font-weight: 500; display: block; margin-top: 2px; letter-spacing: .02em; }
+      .side.srv { text-align: left; } .side.rtn { text-align: right; }
+      .side.srv .val { color: var(--accent-dim); }
+      @media (prefers-color-scheme: dark) { .side.srv .val { color: var(--accent); } }
+      .side.rtn .val { color: var(--wta); }
+      .side .bar { margin-top: 8px; }
+      .side.srv .bar i { background: var(--accent-dim); }
+      @media (prefers-color-scheme: dark) { .side.srv .bar i { background: var(--accent); } }
+      .side.rtn .bar i { background: var(--wta); margin-left: auto; border-radius: 0 5px 5px 0; }
+      .vs-badge {
+        font-family: "IBM Plex Mono", monospace; font-weight: 700; font-size: 12px;
+        border: 1px solid var(--line); border-radius: 50%; width: 36px; height: 36px;
+        display: grid; place-items: center; color: var(--ink-dim); background: var(--panel2);
+      }
+      .mu-note { margin: 4px 0 0; font-size: 13.5px; color: var(--ink-faint); }
+      .mu-note strong { color: var(--ink-dim); }
+      .flow {
+        margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line);
+        display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+      }
+      .flow .step {
+        font-family: "IBM Plex Mono", monospace; font-size: 13px; font-weight: 600;
+        border: 1px solid var(--line); border-radius: 6px; padding: 7px 12px; background: var(--panel2);
+      }
+      .flow .step.final { background: var(--accent); color: #10160a; border-color: var(--accent); }
+      @media (prefers-color-scheme: light) { .flow .step.final { color: #fff; } }
+      .flow .arr { color: var(--ink-faint); font-family: "IBM Plex Mono", monospace; }
+      .flow .cap { width: 100%; font-size: 13.5px; color: var(--ink-faint); margin-top: 6px; }
+
+      /* ---------- Section 4: adjusters ---------- */
+      .adj-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+      .adj { padding: 20px 20px 18px; }
+      .adj .n { font-family: "IBM Plex Mono", monospace; font-size: 12px; font-weight: 700; color: var(--ink-faint); letter-spacing: .14em; }
+      .adj h3 { margin: 8px 0 8px; font-size: 18.5px; font-weight: 800; line-height: 1.2; }
+      .adj p { margin: 0; font-size: 14px; color: var(--ink-dim); }
+      .adj p strong { color: var(--ink); }
+      .adj .big { font-family: "IBM Plex Mono", monospace; font-size: 26px; font-weight: 700; color: var(--accent-dim); display: block; margin: 10px 0 2px; }
+      @media (prefers-color-scheme: dark) { .adj .big { color: var(--accent); } }
+      .reads { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+      .reads span {
+        font-family: "IBM Plex Mono", monospace; font-size: 11.5px; font-weight: 700;
+        letter-spacing: .08em; padding: 4px 9px; border-radius: 4px; border: 1px solid var(--line);
+      }
+      .reads .r1 { color: var(--accent-dim); border-color: var(--accent-dim); }
+      @media (prefers-color-scheme: dark) { .reads .r1 { color: var(--accent); } }
+      .reads .r2 { color: var(--ink-dim); }
+      .reads .r3 { color: var(--ink-faint); }
+      .surfaces { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+      .surfaces span { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; font-weight: 600; letter-spacing: .06em; padding: 4px 9px; border-radius: 4px; background: var(--panel2); border: 1px solid var(--line-soft); color: var(--ink-dim); }
+
+      /* ---------- Section 5: noise ---------- */
+      .noise {
+        margin-top: 56px; border: 1px dashed var(--line); border-radius: 10px;
+        padding: 20px 22px; background: transparent; opacity: .92;
+      }
+      .noise-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+      .noise-head .sec-no { background: var(--noise); color: var(--bg); }
+      .noise h2 { font-size: 20px; color: var(--ink-dim); }
+      .noise p.lede { margin: 0 0 14px; font-size: 14px; color: var(--ink-faint); max-width: 72ch; }
+      .noise-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+      .noise-chips span {
+        font-size: 13.5px; color: var(--ink-faint); border: 1px solid var(--line-soft);
+        border-radius: 999px; padding: 5px 12px; text-decoration: line-through;
+        text-decoration-color: var(--noise); text-decoration-thickness: 1px;
+      }
+      .noise .se { margin: 14px 0 0; font-size: 13.5px; color: var(--ink-faint); font-family: "IBM Plex Mono", monospace; }
+      .noise .se b { color: var(--ink-dim); }
+
+      footer {
+        margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--line-soft);
+        display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+        font-size: 12.5px; color: var(--ink-faint); font-family: "IBM Plex Mono", monospace;
+      }
+
+      /* ---------- Responsive ---------- */
+      @media (max-width: 760px) {
+        .hero-stats { grid-template-columns: 1fr; }
+        .hstat + .hstat { border-left: none; border-top: 1px solid var(--line-soft); }
+        .prim-grid, .two-col, .adj-grid { grid-template-columns: 1fr; }
+        .ex-row { flex-wrap: wrap; }
+        .ex-row .verdict { margin-left: 0; text-align: left; max-width: none; }
+        .ex-row .verdict .big { display: inline; font-size: 17px; margin-right: 6px; }
+        .versus { grid-template-columns: 1fr; gap: 14px; }
+        .vs-badge { margin: 0 auto; }
+        .side.rtn { text-align: left; }
+        .side.rtn .bar i { margin-left: 0; border-radius: 5px 0 0 5px; }
+        .callout { flex-direction: column; gap: 10px; }
+        table.six th, table.six td { padding: 11px 12px; }
+      }
+
+      /* ---------- Print ---------- */
+      @media print {
+        :root {
+          --bg: #fff; --bg2: #fff; --panel: #fff; --panel2: #f4f4f0;
+          --line: #bbb; --line-soft: #ddd; --ink: #111; --ink-dim: #333; --ink-faint: #666;
+          --accent: #4c6d00; --accent-dim: #4c6d00; --atp: #1d5fa8; --wta: #b34a1c;
+          --shadow: none;
+        }
+        body { background: #fff; }
+        .tour-toggle { display: none; }
+        section { margin-top: 30px; }
+        .panel, .table-scroll, .hero-stats { box-shadow: none; }
+        .noise { opacity: 1; }
+      }
+    </style>
+  </head>
+  <body data-tour="both">
+    <div class="wrap">
+
+      <header class="hero">
+        <span class="kicker">Tennis, at point level <span class="pro">Pro</span></span>
+        <h1>What Actually Drives Wins in Tennis</h1>
+        <p class="subtitle"><strong>Hold + Break is the summary.</strong> These are the drivers underneath it — the point-level numbers a match is actually built from.</p>
+        <div class="hero-stats">
+          <div class="hstat comp">
+            <div class="num">≈ 1.000</div>
+            <div class="lbl"><b>The composite tour average.</b> SPW + RPW sums to ~1.000 on both tours — by construction. Everything above it is edge.</div>
+          </div>
+          <div class="hstat atp">
+            <div class="num">64 / 36</div>
+            <div class="lbl"><b>ATP average split.</b> ~64% of service points won, ~36% of return points won.</div>
+          </div>
+          <div class="hstat wta">
+            <div class="num">56 / 44</div>
+            <div class="lbl"><b>WTA average split.</b> ~56% of service points won, ~44% of return points won. A different game — different thresholds.</div>
+          </div>
+        </div>
+      </header>
+
+      <!-- SECTION 1 -->
+      <section aria-labelledby="s1">
+        <div class="sec-head">
+          <span class="sec-no">01</span>
+          <div>
+            <h2 id="s1">The 2 Primitives</h2>
+            <p class="sec-sub">Every tennis stat you have ever seen is built from two numbers. Start here, and the rest is arithmetic.</p>
+          </div>
+        </div>
+
+        <div class="prim-grid">
+          <div class="panel prim">
+            <div class="tag">On serve</div>
+            <h3>Service Points Won <span class="abbr">SPW</span></h3>
+            <p>Share of points won on your own serve — first and second serves combined.</p>
+            <div class="split-row">
+              <div class="sr-head"><span class="tour tour-atp">ATP AVG</span><span class="val">~64%</span></div>
+              <div class="bar atp"><i style="width:64%"></i></div>
+            </div>
+            <div class="split-row">
+              <div class="sr-head"><span class="tour tour-wta">WTA AVG</span><span class="val">~56%</span></div>
+              <div class="bar wta"><i style="width:56%"></i></div>
+            </div>
+          </div>
+          <div class="panel prim">
+            <div class="tag">On return</div>
+            <h3>Return Points Won <span class="abbr">RPW</span></h3>
+            <p>Share of points won when the other player serves. The quieter half — and usually the separator.</p>
+            <div class="split-row">
+              <div class="sr-head"><span class="tour tour-atp">ATP AVG</span><span class="val">~36%</span></div>
+              <div class="bar atp"><i style="width:36%"></i></div>
+            </div>
+            <div class="split-row">
+              <div class="sr-head"><span class="tour tour-wta">WTA AVG</span><span class="val">~44%</span></div>
+              <div class="bar wta"><i style="width:44%"></i></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel equation">
+          <div class="eq">SPW <span class="op">+</span> RPW <span class="op">=</span> <span class="res">Composite</span></div>
+          <div class="note">Tour average is <strong>~1.000 on both tours</strong>. A composite of 1.05 is a genuinely better-than-field player; 1.10+ is elite territory.</div>
+        </div>
+
+        <div class="two-col">
+          <div class="panel limit">
+            <h4>Why the Rule of 100 is limited</h4>
+            <ul>
+              <li><strong>It averages to 100 by construction.</strong> One player's hold is the other player's failed break — so Hold % + Break % sums to ~100 across the field, just like the composite. “Over 100” means above average, nothing more absolute.</li>
+              <li><strong>It's a games-level summary.</strong> Games are a non-linear squash of the points underneath — the score hides how the points were won.</li>
+              <li><strong>It hides the mechanism.</strong> Two players can both hold 78% for completely different reasons — and break for different reasons next match.</li>
+            </ul>
+          </div>
+          <div class="panel examples">
+            <h4>From charted data</h4>
+            <div class="ex-row">
+              <span class="who">Isner</span>
+              <span class="fig">SPW <b>.72</b> · RPW <b>.28</b></span>
+              <span class="verdict"><span class="big">~1.00</span>Average overall, despite the highlight-reel serve</span>
+            </div>
+            <div class="ex-row">
+              <span class="who">Sinner</span>
+              <span class="fig">Composite</span>
+              <span class="verdict"><span class="big">1.116</span>Elite on both sides of the ball</span>
+            </div>
+            <div class="ex-row">
+              <span class="who">Swiatek</span>
+              <span class="fig">RPW <b>~.49</b></span>
+              <span class="verdict"><span class="big">RPW</span>The separator is her return, not her hold %</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="warn">
+          <strong>Thresholds don't transfer between tours.</strong> An elite WTA serve wins <span class="mono">63–65%</span> of service points — a number that would be merely <span class="mono atp-c">average</span> on the ATP. Judge every player against their own tour's baseline.
+        </div>
+      </section>
+
+      <!-- SECTION 2 -->
+      <section aria-labelledby="s2">
+        <div class="sec-head">
+          <span class="sec-no">02</span>
+          <div>
+            <h2 id="s2">The 6 Numbers That Predict</h2>
+            <p class="sec-sub">A single SPW hides where a player is vulnerable. Split it by serve — <strong>four numbers on serve, two on return</strong> — against tour baselines.</p>
+          </div>
+        </div>
+
+        <div class="tour-toggle" role="group" aria-label="Highlight a tour">
+          <button type="button" data-set="both" aria-pressed="true">Both tours</button>
+          <button type="button" data-set="atp" aria-pressed="false">ATP</button>
+          <button type="button" data-set="wta" aria-pressed="false">WTA</button>
+        </div>
+
+        <div class="table-scroll">
+          <table class="six">
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Stat</th>
+                <th scope="col">Code</th>
+                <th scope="col" class="num">ATP avg</th>
+                <th scope="col" class="num">WTA avg</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="grp"><td colspan="5">On serve</td></tr>
+              <tr>
+                <td class="idx">1</td>
+                <td class="stat"><span class="name">1st serve in</span><span class="desc">How often the first serve lands</span></td>
+                <td class="code">fs_in</td>
+                <td class="num atp-c">63.1%</td>
+                <td class="num wta-c">62.5%</td>
+              </tr>
+              <tr>
+                <td class="idx">2</td>
+                <td class="stat"><span class="name">1st serve points won</span><span class="desc">When it lands, how often the server wins the point</span></td>
+                <td class="code">fs_won</td>
+                <td class="num atp-c">72.3%</td>
+                <td class="num wta-c">64.2%</td>
+              </tr>
+              <tr>
+                <td class="idx">3</td>
+                <td class="stat"><span class="name">2nd serve points won</span><span class="desc">The pressure number — where holds are really decided</span></td>
+                <td class="code">ss_won</td>
+                <td class="num atp-c">56.2%</td>
+                <td class="num wta-c">52.6%</td>
+              </tr>
+              <tr>
+                <td class="idx">4</td>
+                <td class="stat"><span class="name">Double-fault rate</span><span class="desc">Double faults per 2nd serve attempt</span></td>
+                <td class="code">df_rate</td>
+                <td class="num atp-c">9.2%</td>
+                <td class="num wta-c">13.4%</td>
+              </tr>
+              <tr class="grp"><td colspan="5">On return</td></tr>
+              <tr>
+                <td class="idx">5</td>
+                <td class="stat"><span class="name">Return pts won vs 1st serve</span><span class="desc">How much damage you do against a landed first serve</span></td>
+                <td class="code">rpw_fs</td>
+                <td class="num" colspan="2" style="text-align:right">Matchup-specific — read against the server's fs_won</td>
+              </tr>
+              <tr>
+                <td class="idx">6</td>
+                <td class="stat"><span class="name">Return pts won vs 2nd serve</span><span class="desc">How hard you punish the second serve</span></td>
+                <td class="code">rpw_ss</td>
+                <td class="num" colspan="2" style="text-align:right">Matchup-specific — read against the server's ss_won</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout">
+          <div class="glyph">!</div>
+          <p><strong>The second-serve matchup is where most WTA matches turn.</strong> A fragile <span class="mono">ss_won</span> against an elite <span class="mono">rpw_ss</span> is a break waiting to happen — and it is completely <strong>invisible in Hold %</strong> until the break has already happened.</p>
+        </div>
+      </section>
+
+      <!-- SECTION 3 -->
+      <section aria-labelledby="s3">
+        <div class="sec-head">
+          <span class="sec-no">03</span>
+          <div>
+            <h2 id="s3">How a Matchup Actually Works</h2>
+            <p class="sec-sub">Not <strong>my SPW vs your RPW</strong>, averaged. The matchup is priced <strong>per serve type</strong>, each pair blended in log-odds — then compounded exactly from point to match.</p>
+          </div>
+        </div>
+
+        <div class="panel matchup">
+          <div class="mu-row">
+            <div class="mu-label">
+              <span class="t">First serve <span class="mono">fs_won × rpw_fs</span></span>
+              <span class="gap">Tour-average gap: <b>44.6 pts</b></span>
+            </div>
+            <div class="versus">
+              <div class="side srv">
+                <div class="who">Server — fs_won</div>
+                <div class="val">72.3%<small>ATP tour average</small></div>
+                <div class="bar"><i style="width:72.3%"></i></div>
+              </div>
+              <div class="vs-badge">VS</div>
+              <div class="side rtn">
+                <div class="who">Returner — rpw_fs</div>
+                <div class="val">27.7%<small>what the average returner takes back</small></div>
+                <div class="bar"><i style="width:27.7%"></i></div>
+              </div>
+            </div>
+            <p class="mu-note">On a landed first serve, the server's edge is structural. An elite returner is the one who drags <strong>rpw_fs</strong> up from this baseline.</p>
+          </div>
+
+          <div class="mu-row">
+            <div class="mu-label">
+              <span class="t">Second serve <span class="mono">ss_won × rpw_ss</span></span>
+              <span class="gap">Tour-average gap: <b>12.4 pts</b></span>
+            </div>
+            <div class="versus">
+              <div class="side srv">
+                <div class="who">Server — ss_won</div>
+                <div class="val">56.2%<small>ATP tour average</small></div>
+                <div class="bar"><i style="width:56.2%"></i></div>
+              </div>
+              <div class="vs-badge">VS</div>
+              <div class="side rtn">
+                <div class="who">Returner — rpw_ss</div>
+                <div class="val">43.8%<small>what the average returner takes back</small></div>
+                <div class="bar"><i style="width:43.8%"></i></div>
+              </div>
+            </div>
+            <p class="mu-note">Miss the first serve and the server's edge collapses from 44.6 points to 12.4. <strong>This pairing — not the headline serve — is where matches are priced wrong.</strong></p>
+          </div>
+
+          <div class="flow" aria-label="Probability flow">
+            <span class="step">Point probability</span><span class="arr">→</span>
+            <span class="step">Game</span><span class="arr">→</span>
+            <span class="step">Set</span><span class="arr">→</span>
+            <span class="step final">Match probability</span>
+            <span class="cap">Each blended per-serve point probability is compounded exactly up the scoring ladder — no simulation noise, no averaging shortcuts.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 4 -->
+      <section aria-labelledby="s4">
+        <div class="sec-head">
+          <span class="sec-no">04</span>
+          <div>
+            <h2 id="s4">The 3 Adjusters That Add Real Lift</h2>
+            <p class="sec-sub">The six numbers are the engine. These three decide whether the engine is reading the right player, in the right form, with the right confidence.</p>
+          </div>
+        </div>
+
+        <div class="adj-grid">
+          <div class="panel adj">
+            <div class="n">ADJUSTER / 01</div>
+            <h3>Per-surface only — never overall</h3>
+            <p>The six numbers on <strong>clay</strong> describe a different player than the same six on <strong>grass</strong>. Blending surfaces blends two players into a fiction. Always price the surface being played.</p>
+            <div class="surfaces"><span>CLAY</span><span>HARD</span><span>GRASS</span><span>— priced separately, always</span></div>
+          </div>
+          <div class="panel adj">
+            <div class="n">ADJUSTER / 02</div>
+            <h3>Opponent-adjusted, recency-weighted</h3>
+            <p>Raw percentages against a weak draw lie. Correct for <strong>who the points were won against</strong> (surface Elo), then weight recent form so last month counts more than last year.</p>
+            <span class="big">540-day</span>
+            <p>half-life on form — a result's weight halves every 540 days.</p>
+          </div>
+          <div class="panel adj">
+            <div class="n">ADJUSTER / 03</div>
+            <h3>Sample size + shrinkage</h3>
+            <p>A number is only as good as the evidence under it. <strong>Thin data pulls hard toward the tour averages</strong> above; deep data is allowed to speak for itself. Every read carries its confidence with it.</p>
+            <div class="reads"><span class="r1">STRONG</span><span class="r2">DECENT</span><span class="r3">THIN</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 5 -->
+      <div class="noise" role="note">
+        <div class="noise-head">
+          <span class="sec-no">05</span>
+          <h2>Noise, Not Drivers</h2>
+        </div>
+        <p class="lede">What TV graphics love and pre-match models mostly ignore. These describe style or outcomes — they don't drive wins, and break-point save % as a standalone stat mostly regresses back to the SPW/RPW that created the break point in the first place. Wind, a tired serve, lengthening rallies: noisy in-play modifiers, not pre-match drivers.</p>
+        <div class="noise-chips">
+          <span>Aces</span>
+          <span>Winners</span>
+          <span>Unforced errors</span>
+          <span>Break-point save %</span>
+          <span>Wind</span>
+          <span>Tired serve &lt; 55%</span>
+          <span>Rally-length jumps</span>
+        </div>
+        <p class="se">Why in-play “signals” mislead: <b>15 serves carry ~13 points of standard error</b> — a two-game dip is usually just variance wearing a story.</p>
+      </div>
+
+      <footer>
+        <span>PRO VERSION — POINT-LEVEL MODEL</span>
+        <span>BASELINES: EMPIRICAL TOUR AVERAGES FROM CHARTED MATCH DATA</span>
+      </footer>
+
+    </div>
+
+    <script>
+      (function () {
+        var buttons = document.querySelectorAll(".tour-toggle button");
+        buttons.forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            document.body.setAttribute("data-tour", btn.getAttribute("data-set"));
+            buttons.forEach(function (b) {
+              b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+            });
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>
