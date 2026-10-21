@@ -58,6 +58,7 @@
   .go.blue{background:var(--acc2);color:#fff}
 
   table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
+  @media(max-width:640px){table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}}
   th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right}
   th:first-child,td:first-child{text-align:left;color:var(--dim)}
   td.edge{color:var(--acc);font-weight:700}
@@ -196,10 +197,12 @@
 
 <script src="profiles.js"></script>
 <script src="results.js"></script>
+<script src="h2h.js"></script>
 <script>
 "use strict";
 const D = window.GAP_DATA;
 const R = window.TENNIS_RESULTS || null;
+const H = window.TENNIS_H2H || null;
 if (!D) document.getElementById("fatal").classList.remove("hidden");
 // field indices in each profile array
 const F = {fs_in:0, fs_won:1, df:2, ss_won:3, rpw_fs:4, rpw_ss:5, matches:6, asof:7,
@@ -623,12 +626,31 @@ function recentListHtml(name, n){
     <div><span class="res-ev">${it.ev}</span> <span class="res-meta">${it.rd} · vs ${it.opp}</span></div>
     <div class="res-sc">${fmtResDate(it.d)}${it.sc ? " · " + it.sc : ""}${it.note ? " · " + it.note : ""}</div></div>`).join("")}</div>`;
 }
+function formStripHtml(name){
+  const lst = (R && R.tours[tour] && R.tours[tour][name]) || [];
+  if (!lst.length) return "";
+  const wl = arr => { const w = arr.filter(it => it.w).length; return `${w}–${arr.length - w}`; };
+  let streak = 0;
+  while (streak < lst.length && lst[streak].w === lst[0].w) streak++;
+  const cells = [
+    ["Last 10", wl(lst)],
+    ["Last 5", wl(lst.slice(0, 5))],
+    ["Streak", `${lst[0].w ? "W" : "L"}${streak}`],
+  ];
+  const bySurf = {};
+  for (const it of lst){ (bySurf[it.surf] = bySurf[it.surf] || []).push(it); }
+  for (const s of ["Hard", "Clay", "Grass"]) if (bySurf[s]) cells.push([s, wl(bySurf[s])]);
+  return `<div class="panel-sub" style="margin-top:10px">Recent form — last 10 recorded matches</div>
+  <div class="strip form-strip">${cells.map(([k, v]) =>
+    `<div class="cell"><div class="s">${k}</div><div class="v">${v}</div></div>`).join("")}</div>`;
+}
 function recentResultsHtml(name){
   if (!R || !(R.tours[tour] || {})[name]) return "";
   const thru = tour === "ATP" ? R.meta.atp_results_through : R.meta.wta_results_through;
   return `<section class="panel">
     <h2>Recent results</h2>
     <div class="panel-sub">Latest matches from the tour results archive (through ${formatDate(thru)}).${tour === "ATP" ? " ATP dates show the tournament month." : ""}</div>
+    ${formStripHtml(name)}
     ${recentListHtml(name, 8)}
   </section>`;
 }
@@ -639,6 +661,44 @@ function recentResultsPairHtml(na, nb){
     <h2>Recent results</h2>
     <div class="panel-sub">Latest matches from the tour results archive (through ${formatDate(thru)}).${tour === "ATP" ? " ATP dates show the tournament month." : ""}</div>
     <div class="res-cols"><div><h3>${na}</h3>${recentListHtml(na, 5)}</div><div><h3>${nb}</h3>${recentListHtml(nb, 5)}</div></div>
+  </section>`;
+}
+/* ---------- head-to-head history (recorded meetings since 2024) ---------- */
+function h2hHistoryHtml(na, nb){
+  if (!H || !H.tours[tour]) return "";
+  const ms = H.tours[tour][[na, nb].sort().join("|")];
+  if (!ms || !ms.length) return "";
+  const wins = n => ms.filter(m => m.w === n).length;
+  const wa = wins(na), wb = wins(nb);
+  const leader = wa === wb ? null : (wa > wb ? na : nb);
+  const lw = Math.max(wa, wb), ow = Math.min(wa, wb);
+  const series = leader ? `${leader} leads ${lw}–${ow}` : `Tied ${wa}–${wb}`;
+  const splitParts = [];
+  for (const s of ["Hard", "Clay", "Grass", "Carpet"]){
+    const sub = ms.filter(m => m.surf === s);
+    if (!sub.length) continue;
+    const x = sub.filter(m => m.w === (leader || na)).length;
+    splitParts.push(`${s} ${x}–${sub.length - x}`);
+  }
+  const surname = n => n.split(" ").pop();
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const row = m => {
+    const p = String(m.d).split("-").map(Number);
+    const loser = m.w === na ? nb : na;
+    return `<div class="res-row"><div class="res-meta" style="min-width:74px">${months[p[1] - 1]} ${p[0]}</div>
+    <div><span class="res-ev">${m.ev}</span> <span class="res-meta">${m.surf} · ${m.rd}</span></div>
+    <div class="res-sc">${surname(m.w)} d. ${surname(loser)}${m.sc ? " " + m.sc : ""}${m.note ? " · " + m.note : ""}</div></div>`;
+  };
+  const head = ms.slice(0, 6).map(row).join("");
+  const rest = ms.length > 6
+    ? `<details><summary>All ${ms.length} meetings</summary>${ms.slice(6).map(row).join("")}</details>` : "";
+  return `<section class="panel" id="h2hHistory">
+    <h2>Head-to-head history</h2>
+    <div class="panel-sub">Meetings in our records since 2024.${tour === "ATP" ? " Some ATP meetings come from the official-stats archive, which dates matches by tournament — those show month precision." : ""}</div>
+    <div class="series-line" style="font-size:19px;font-weight:700;margin-top:6px">${series}</div>
+    ${splitParts.length ? `<div class="res-meta" style="margin-top:2px">${splitParts.join(" · ")}</div>` : ""}
+    <div style="margin-top:6px">${head}</div>
+    ${rest}
   </section>`;
 }
 function updateFreshLine(){
@@ -844,6 +904,7 @@ function matchupDashboardHtml(na, ra, nb, rb){
     ${perMatchComparisonHtml(na, ra, nb, rb)}
   </section>
   ${recentResultsPairHtml(na, nb)}
+  ${h2hHistoryHtml(na, nb)}
   <section class="panel">
     <h2>Same matchup, other surfaces</h2>
     ${matchupSurfaceHtml(na, nb, bo)}
