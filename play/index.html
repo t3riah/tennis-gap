@@ -46,6 +46,15 @@
   .hint{color:var(--ink-soft);font-size:15px;line-height:1.45;margin:0 0 14px}
   label.plain{display:block;font-size:14px;font-weight:700;color:var(--ink-soft);margin:12px 0 5px}
   select.player{width:100%;font-size:17px;padding:13px;border-radius:11px;border:1px solid var(--line);background:var(--surface2);color:var(--ink);min-height:52px}
+  .player-tools{position:relative;margin:0 0 8px}
+  .player-search{width:100%;font-size:16px;padding:12px 13px;border-radius:11px;border:1px solid var(--line);background:var(--surface);color:var(--ink);min-height:50px;-webkit-appearance:none;appearance:none}
+  .player-search:focus{outline:2px solid var(--court);outline-offset:1px}
+  .player-results{position:absolute;z-index:30;left:0;right:0;top:calc(100% + 5px);max-height:290px;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:5px}
+  .player-result{width:100%;display:flex;justify-content:space-between;gap:12px;align-items:center;text-align:left;border:0;background:transparent;color:var(--ink);padding:11px 10px;border-radius:8px;font-size:16px;cursor:pointer}
+  .player-result.sel,.player-result:hover{background:var(--surface2)}
+  .player-result .meta{font-size:12.5px;color:var(--ink-soft);white-space:nowrap}
+  .player-none{padding:11px 10px;color:var(--ink-soft);font-size:14.5px;line-height:1.4}
+  .coverage{font-size:13px;color:var(--ink-soft);line-height:1.4;margin:5px 0 0}
   .answer{margin:18px 0 6px;text-align:center}
   .verdict{font-size:clamp(24px,6vw,34px);font-weight:900;line-height:1.15}
   .outof{font-size:17px;color:var(--ink-soft);margin-top:5px;line-height:1.4}
@@ -123,8 +132,10 @@
   <section class="panel" id="panelLab">
     <p class="q" id="labQ">How strong is her serve, really?</p>
     <p class="hint">Pick a player — their real serve numbers load into the sliders. Then move them and see what the serve is worth. Try dragging <b>second serves won</b> down and watch what happens.</p>
-    <label class="plain" for="labPlayer">Player</label>
+    <label class="plain" for="labPlayer">Player — search or use the dropdown</label>
+    <div class="player-tools"><input class="player-search" id="labPlayerSearch" type="search" placeholder="Search for a player…" aria-label="Search for a player to explore" autocomplete="off" /><div class="player-results hidden" id="labPlayerResults" role="listbox" aria-label="Matching players"></div></div>
     <select class="player" id="labPlayer"></select>
+    <div class="coverage" id="labCoverage"></div>
     <div id="labSliders"></div>
     <div class="answer">
       <div class="verdict" id="labVerdict"></div>
@@ -138,11 +149,15 @@
   <section class="panel hidden" id="panelMatch">
     <p class="q">Who wins — and what would flip it?</p>
     <p class="hint">Pick the match. Then choose one player and make <span id="matchHintPron">her</span> serve a little better (or worse) with the sliders. The bar moves as you drag.</p>
-    <label class="plain" for="matchA">Player A</label>
+    <label class="plain" for="matchA">Player A — search or use the dropdown</label>
+    <div class="player-tools"><input class="player-search" id="matchASearch" type="search" placeholder="Search for a player…" aria-label="Search for Player A" autocomplete="off" /><div class="player-results hidden" id="matchAResults" role="listbox" aria-label="Matching players for Player A"></div></div>
     <select class="player" id="matchA"></select>
+    <div class="coverage" id="matchACoverage"></div>
     <div class="vsline">vs</div>
-    <label class="plain" for="matchB">Player B</label>
+    <label class="plain" for="matchB">Player B — search or use the dropdown</label>
+    <div class="player-tools"><input class="player-search" id="matchBSearch" type="search" placeholder="Search for a player…" aria-label="Search for Player B" autocomplete="off" /><div class="player-results hidden" id="matchBResults" role="listbox" aria-label="Matching players for Player B"></div></div>
     <select class="player" id="matchB"></select>
+    <div class="coverage" id="matchBCoverage"></div>
     <label class="plain">Make changes to…</label>
     <div class="seg tweakwho" id="tweakWho">
       <button data-who="A" style="flex:1"></button>
@@ -167,11 +182,15 @@
   <section class="panel hidden" id="panelLive">
     <p class="q" id="liveQ">She's down a break. How much trouble is she in?</p>
     <p class="hint">Watching a match? Keep the score here with the big + / − buttons and it tells you, from the real score, how likely each player is to come through. It starts from the same two players as the match above.</p>
-    <label class="plain" for="liveA">Player A</label>
+    <label class="plain" for="liveA">Player A — search or use the dropdown</label>
+    <div class="player-tools"><input class="player-search" id="liveASearch" type="search" placeholder="Search for a player…" aria-label="Search for Player A in the live tracker" autocomplete="off" /><div class="player-results hidden" id="liveAResults" role="listbox" aria-label="Matching players for live Player A"></div></div>
     <select class="player" id="liveA"></select>
+    <div class="coverage" id="liveACoverage"></div>
     <div class="vsline">vs</div>
-    <label class="plain" for="liveB">Player B</label>
+    <label class="plain" for="liveB">Player B — search or use the dropdown</label>
+    <div class="player-tools"><input class="player-search" id="liveBSearch" type="search" placeholder="Search for a player…" aria-label="Search for Player B in the live tracker" autocomplete="off" /><div class="player-results hidden" id="liveBResults" role="listbox" aria-label="Matching players for live Player B"></div></div>
     <select class="player" id="liveB"></select>
+    <div class="coverage" id="liveBCoverage"></div>
 
     <label class="plain">Sets won</label>
     <div class="stepgrid">
@@ -406,6 +425,104 @@ function fillSelect(el, selected){
   el.innerHTML = ns.map(n => '<option value="' + n.replace(/"/g, "&quot;") + '"' + (n === selected ? " selected" : "") + ">" + n + "</option>").join("");
   if (selected && ns.includes(selected)) el.value = selected;
 }
+function formatDataDate(iso){
+  const parts = String(iso || "").split("-").map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return iso;
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return months[parts[1] - 1] + " " + parts[2] + ", " + parts[0];
+}
+function coverageText(name){
+  const p = getProfile(name); if (!p) return "";
+  const m = p[F.matches];
+  const hasSurface = surf === "All" || !!(D.tours[tour][surf] && D.tours[tour][surf][name]);
+  const fallback = surf !== "All" && !hasSurface ? " All-court profile used here." : "";
+  if (m < 5) return "Only " + m + " charted " + (m === 1 ? "match" : "matches") + " — a rough early read, pulled strongly toward tour averages." + fallback;
+  return "Based on " + m + " charted matches · latest " + formatDataDate(p[F.asof]) + "." + fallback;
+}
+function syncCoverage(){
+  const map = { labCoverage:"labPlayer", matchACoverage:"matchA", matchBCoverage:"matchB", liveACoverage:"liveA", liveBCoverage:"liveB" };
+  Object.keys(map).forEach(id => { const el = $(id); if (el) el.textContent = coverageText($(map[id]).value); });
+}
+function clearPlayerSearches(){
+  document.querySelectorAll(".player-search").forEach(x => { x.value = ""; });
+  document.querySelectorAll(".player-results").forEach(x => { x.classList.add("hidden"); x.innerHTML = ""; });
+}
+function normalizeSearch(s){
+  return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
+}
+function searchPlayers(query){
+  const q = normalizeSearch(query); if (!q) return [];
+  const tokens = q.split(" ");
+  return names().map(name => {
+    const n = normalizeSearch(name), parts = n.split(" ");
+    let score = null;
+    if (n === q) score = 0;
+    else if (n.startsWith(q)) score = 1;
+    else if (parts.some(part => part.startsWith(tokens[0]))) score = 2;
+    else if (tokens.every(tok => n.includes(tok))) score = 3;
+    return score === null ? null : { name, score };
+  }).filter(Boolean).sort((a, b) => a.score - b.score || a.name.localeCompare(b.name)).slice(0, 10);
+}
+function attachPlayerSearch(inputId, resultsId, selectId){
+  const input = $(inputId), box = $(resultsId), select = $(selectId);
+  let current = [], selIdx = -1, blurTimer = null;
+  function close(){
+    box.classList.add("hidden"); box.innerHTML = ""; current = []; selIdx = -1;
+    input.setAttribute("aria-expanded", "false");
+  }
+  function choose(name){
+    select.value = name; input.value = ""; close();
+    select.dispatchEvent(new Event("change", { bubbles:true }));
+  }
+  function paintSelection(){
+    Array.from(box.querySelectorAll(".player-result")).forEach((el, i) => el.classList.toggle("sel", i === selIdx));
+  }
+  function render(){
+    const q = input.value.trim(); if (!q){ close(); return; }
+    current = searchPlayers(q); selIdx = current.length ? 0 : -1;
+    box.innerHTML = "";
+    if (!current.length){
+      const none = document.createElement("div");
+      none.className = "player-none";
+      none.textContent = "No charted player found for “" + q + "”. Try another spelling, or browse the dropdown below.";
+      box.appendChild(none);
+    } else {
+      current.forEach((item, idx) => {
+        const btn = document.createElement("button");
+        btn.type = "button"; btn.className = "player-result" + (idx === selIdx ? " sel" : ""); btn.setAttribute("role", "option");
+        const nm = document.createElement("span"); nm.textContent = item.name; btn.appendChild(nm);
+        const p = D.tours[tour]["All"][item.name];
+        if (p){
+          const meta = document.createElement("span"); meta.className = "meta";
+          const m = p[F.matches];
+          meta.textContent = m + " charted " + (m === 1 ? "match" : "matches") + (m < 5 ? " · limited data" : "");
+          btn.appendChild(meta);
+        }
+        btn.addEventListener("click", () => choose(item.name));
+        box.appendChild(btn);
+      });
+    }
+    box.classList.remove("hidden"); input.setAttribute("aria-expanded", "true");
+  }
+  input.addEventListener("input", render);
+  input.addEventListener("focus", () => { if (input.value.trim()) render(); });
+  input.addEventListener("blur", () => { blurTimer = setTimeout(close, 180); });
+  input.addEventListener("keydown", ev => {
+    if (ev.key === "Escape"){ close(); return; }
+    if (ev.key === "Enter"){
+      ev.preventDefault();
+      if (current.length) choose(current[Math.max(0, selIdx)].name);
+      return;
+    }
+    if ((ev.key === "ArrowDown" || ev.key === "ArrowUp") && current.length){
+      ev.preventDefault();
+      selIdx = ev.key === "ArrowDown" ? Math.min(current.length - 1, selIdx + 1) : Math.max(0, selIdx - 1);
+      paintSelection();
+      const el = box.querySelectorAll(".player-result")[selIdx]; if (el) el.scrollIntoView({ block:"nearest" });
+    }
+  });
+  select.addEventListener("change", () => { if (input.value){ input.value = ""; close(); } });
+}
 function firstName(n){ return n ? n.split(" ").slice(-1)[0] : n; }
 function pron(){ return tour === "WTA" ? {s:"she", p:"her", S:"She", P:"Her"} : {s:"he", p:"his", S:"He", P:"His"}; }
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
@@ -447,6 +564,7 @@ function labProfileFrom(){
 }
 function buildLabSliders(){
   const orig = getProfile($("labPlayer").value); if (!orig) return;
+  syncCoverage();
   labVals = { fs_in: orig[F.fs_in], fs_won: orig[F.fs_won], ss_won: orig[F.ss_won], df: orig[F.df] };
   const b = base(), pr = pron();
   const avgFor = k => k === "df" ? b.df_rate : b[k];
@@ -547,6 +665,7 @@ function toggleBO(){ matchBO = matchBO === 3 ? 5 : 3; $("boBtn").textContent = m
 function renderMatch(){
   const a = $("matchA").value, b = $("matchB").value; if (!a || !b || a === b && false) {}
   if (!getProfile(a) || !getProfile(b)) return;
+  syncCoverage();
   MATCH_DEFS.forEach(d => { const el = $("mVal_" + d.key); if (el) el.textContent = offLabel(d, matchOff[d.key]); });
   const cur = matchProb(null), orig = matchProb({ fs_won: 0, ss_won: 0, df: 0 });
   const pA = cur.prob, leaderIsA = pA >= 0.5, pLeader = leaderIsA ? pA : 1 - pA;
@@ -663,6 +782,7 @@ function liveDuels(){
 }
 function renderLive(){
   const a = $("liveA").value, b = $("liveB").value; if (!getProfile(a) || !getProfile(b)) return;
+  syncCoverage();
   $("setWhoA").textContent = firstName(a); $("setWhoB").textContent = firstName(b);
   $("gameWhoA").textContent = firstName(a); $("gameWhoB").textContent = firstName(b);
   $("ptWhoA").textContent = firstName(a); $("ptWhoB").textContent = firstName(b);
@@ -733,10 +853,12 @@ function refreshAllPlayers(keep){
   fillSelect($("matchB"), names().includes(cur.b) ? cur.b : d[1]);
   fillSelect($("liveA"), $("matchA").value);
   fillSelect($("liveB"), $("matchB").value);
+  syncCoverage();
   buildLabSliders(); buildMatchSliders(); renderLive();
 }
 document.querySelectorAll("#tourSeg button").forEach(btn => btn.addEventListener("click", () => {
   tour = btn.dataset.tour;
+  clearPlayerSearches();
   document.querySelectorAll("#tourSeg button").forEach(x => x.classList.toggle("on", x === btn));
   document.querySelectorAll(".modes button small")[0].textContent = tour === "WTA" ? "How strong is her serve?" : "How strong is his serve?";
   $("labQ").textContent = tour === "WTA" ? "How strong is her serve, really?" : "How strong is his serve, really?";
@@ -753,6 +875,11 @@ $("matchA").addEventListener("change", () => { syncTweakButtons(); renderMatch()
 $("matchB").addEventListener("change", () => { syncTweakButtons(); renderMatch(); fillSelect($("liveB"), $("matchB").value); renderLive(); });
 $("liveA").addEventListener("change", renderLive);
 $("liveB").addEventListener("change", renderLive);
+attachPlayerSearch("labPlayerSearch", "labPlayerResults", "labPlayer");
+attachPlayerSearch("matchASearch", "matchAResults", "matchA");
+attachPlayerSearch("matchBSearch", "matchBResults", "matchB");
+attachPlayerSearch("liveASearch", "liveAResults", "liveA");
+attachPlayerSearch("liveBSearch", "liveBResults", "liveB");
 if (D) refreshAllPlayers(false); else document.querySelector(".tagline").textContent = "The player data didn't load — check your connection and refresh.";
 </script>
 </body>

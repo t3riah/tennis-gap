@@ -6,14 +6,14 @@ A free, no-signup web tool for browsing real tennis stats and predicting matches
 
 ## What it does
 
-- **Player Stats** — compare any two ATP or WTA players: service points won, return points won, hold and break rates, first/second serve splits, break-point save rates, and recent-form freshness for each player.
+- **Player Stats** — compare ATP or WTA players: service points won, return points won, hold and break rates, first/second serve splits, break-point save rates, and recent-form freshness for each player. Every player with at least one charted match is listed; very small samples are labelled as limited.
 - **Match Predictor** — an exact serve-aware probability model (first serve, second serve, and double faults modeled separately) with a confidence range, the key matchup edge explained in plain language, exact set-score probabilities, and a per-surface breakdown.
 
 Player lists can be browsed alphabetically or sorted by any stat — best servers, best returners, fewest double faults — per surface.
 
 ## Data
 
-Profiles are built from the [Match Charting Project](https://github.com/JeffSackmann/tennis_MatchChartingProject), recency-weighted and shrunk toward tour averages so small samples don't shout. Stats are informational only, not betting advice.
+Profiles are built from the [Match Charting Project](https://github.com/JeffSackmann/tennis_MatchChartingProject), recency-weighted and shrunk toward tour averages so small samples don't shout. An all-surface profile appears once a player has one charted match; a surface-specific profile replaces it only after five charted matches on that surface. Stats are informational only, not betting advice.
 
 This repo contains only the static site. The full engine lives in a private repository.
 
@@ -30,4 +30,4 @@ Two versions together on one page, with a Simple / Pro switch:
 
 **Live:** https://t3riah.github.io/tennis-gap/play/
 
-One page, three tools, plain words first (exact numbers behind a toggle): **Explore a player** (her real serve stats on sliders — live hold and match strength vs. a tour-average opponent), **Compare a match** (what-if serve sliders on either player, plus the smallest single change that would flip the match), and **Follow live** (score steppers that give the exact win probability from the current score, set and game included). It runs on the same validated serve-model math and player data as the predictor.
+One page, three tools, plain words first (exact numbers behind a toggle): **Explore a player** (her real serve stats on sliders — live hold and match strength vs. a tour-average opponent), **Compare a match** (what-if serve sliders on either player, plus the smallest single change that would flip the match), and **Follow live** (score steppers that give the exact win probability from the current score, set and game included). Every player picker pairs a type-to-search field with the full dropdown, and each selection shows how many charted matches support it. It runs on the same validated serve-model math and player data as the predictor.
