@@ -158,6 +158,17 @@
     cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-align:center;justify-content:center}
   .clabel:hover{color:var(--acc)}
 
+  /* --- serve placement (compact court graphic) --- */
+  .pl-head{font-size:17px;font-weight:700;padding:0}
+  .pl-wrap{max-width:300px;margin:6px auto 0}
+  .pl-wrap svg{width:100%;height:auto;display:block}
+  .pl-court{font-size:9.5px;letter-spacing:.12em;fill:var(--dim);font-weight:700}
+  .pl-dir{font-size:9.5px;letter-spacing:.05em;fill:var(--dim);font-weight:700;text-anchor:middle}
+  .pl-share{font-size:15px;font-weight:800;fill:var(--ink);text-anchor:middle;
+    font-variant-numeric:tabular-nums}
+  .pl-win{font-size:9.5px;fill:var(--dim);text-anchor:middle;font-variant-numeric:tabular-nums}
+  .pl-tend{font-size:13.5px;line-height:1.5;margin:10px 0 0;text-align:center}
+
   /* --- results + meetings --- */
   .res-row{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line2);font-size:14px}
   .res-row:last-child{border-bottom:none}
@@ -266,7 +277,9 @@
     calibrated on a walk-forward backtest of 5,186 tour matches. For the men, profiles for in-form
     players come from official ATP match stats instead of charted matches (through-date in the
     freshness line above). Break-point and hold-point counts are recency-weighted toward recent
-    matches, so the saved/converted fractions are rounded. Stats are informational only, not betting advice.
+    matches, so the saved/converted fractions are rounded. Serve placement is read from charted
+    matches for every player, including men whose other numbers come from official stats — the
+    official feed doesn't record serve direction. Stats are informational only, not betting advice.
   </div>
 </div>
 
@@ -292,7 +305,9 @@ const H = window.TENNIS_H2H || null;
 if (!D) document.getElementById("fatal").classList.remove("hidden");
 const F = {fs_in:0, fs_won:1, df:2, ss_won:3, rpw_fs:4, rpw_ss:5, matches:6, asof:7,
            aces:8, dfs:9, win:10, ue:11, bpf:12, bps:13, n:14,
-           bpfW:15, bpsW:16, bpcW:17, bcvW:18, hpSN:19, hpSW:20, hpRN:21, hpRW:22};
+           bpfW:15, bpsW:16, bpcW:17, bcvW:18, hpSN:19, hpSW:20, hpRN:21, hpRW:22,
+           plDW:23, plDWon:24, plDB:25, plDBon:26, plDT:27, plDTon:28,
+           plAT:29, plATon:30, plAB:31, plABon:32, plAW:33, plAWon:34, plN:35};
 let tour = "WTA";
 
 const $ = id => document.getElementById(id);
@@ -803,6 +818,14 @@ const STATS = {
     what: "How often the player wins their service games — 'holds serve'. It is worked out from service points won using standard game maths: win most of your service points and the games follow.",
     why: "Holding is the job. Breaks decide sets, but the player who holds more reliably controls the scoreboard — and can swing freer on return games, knowing their own serve is safe.",
     strong: "Holds run lower on the WTA tour, where breaks are more common — always compare within the tour." },
+  placement: { label: "Serve placement", kind: "pct",
+    val: c => null,
+    avg: () => { const b = D.base[tour];
+      if (!b || b.pl_dw_share == null) return null;
+      return { num: 0, text: `deuce court — wide ${pct0(b.pl_dw_share)}, body ${pct0(b.pl_db_share)}, T ${pct0(b.pl_dt_share)}; ad court — T ${pct0(b.pl_at_share)}, body ${pct0(b.pl_ab_share)}, wide ${pct0(b.pl_aw_share)}` }; },
+    what: "Where the serve is aimed, from the charted matches. Each service box is split into three target lanes: wide (out toward the sideline), body (straight at the returner) and T (down the middle, at the centre line). The share in each lane is out of the serves on that court whose direction was charted — which is nearly all of them — and each lane also shows how often the server won the point after aiming there. First and second serves are combined; the charting doesn't split placement by serve number.",
+    why: "Placement is the predictability stat. A server who leans on one favourite lane is readable: returners start cheating that way, and the lane's edge quietly evaporates. Elite servers keep all three lanes live on both courts, so the returner has to guard everything — and ends up committing late to all of it.",
+    strong: "Watch for a lane under about a fifth of serves (a habit returners can sit on) or a favourite lane whose win rate has sagged toward the player's other lanes — the surprise is gone. Body serves are the natural exception: they jam the returner rather than pass them, so a low body share is normal, especially in the men's game." },
   rpw: { label: "Return points won %", kind: "pct",
     val: c => ({ num: c.sum.rpw, text: pct(c.sum.rpw) }),
     avg: () => ({ num: D.avg[tour].rpw, text: pct(D.avg[tour].rpw) }),
@@ -896,6 +919,65 @@ function groupHtml(title, sub, ids, ctx){
   if (!rows) return "";
   return `<section class="panel"><h2>${title}</h2>${sub ? `<div class="panel-sub">${sub}</div>` : ""}<div class="srows">${rows}</div></section>`;
 }
+/* ---------- serve placement (charting SvBreakTotal lanes) ----------
+   Fields 23-34 are the recency-weighted pts/won for the six
+   direction x court lanes; field 35 is the weighted court-total serve
+   points. The section is suppressed unless the sample is real:
+   >= 200 weighted serve points with a charted deciding serve AND the
+   direction known on >= 80% of them (measured tour-wide coverage is
+   ~99.9%, so the 80% line only catches charting anomalies; 200 points
+   is roughly three-plus charted matches of serving). */
+const PL_MIN_PTS = 200, PL_MIN_COV = 0.8;
+function placementData(p){
+  if (!p || p.length < 36 || p[F.plN] == null) return null;
+  const cells = {
+    dw: [p[F.plDW], p[F.plDWon]], db: [p[F.plDB], p[F.plDBon]], dt: [p[F.plDT], p[F.plDTon]],
+    at: [p[F.plAT], p[F.plATon]], ab: [p[F.plAB], p[F.plABon]], aw: [p[F.plAW], p[F.plAWon]],
+  };
+  const dKnown = cells.dw[0] + cells.db[0] + cells.dt[0];
+  const aKnown = cells.at[0] + cells.ab[0] + cells.aw[0];
+  if (p[F.plN] < PL_MIN_PTS || (dKnown + aKnown) / p[F.plN] < PL_MIN_COV) return null;
+  return { cells, dKnown, aKnown };
+}
+function placementHtml(name, res){
+  const d = placementData(res && res.p);
+  if (!d) return "";
+  // Overhead court, server at the bottom, net across the top. Left box
+  // is the deuce court (lanes wide-body-T left to right), right box the
+  // ad court (lanes T-body-wide): T lanes hug the centre service line,
+  // wide lanes sit at the singles sidelines. Kept compact on purpose —
+  // the graphic renders about 178px tall.
+  const lanes = [
+    { k: "dw", dir: "WIDE", x: 30 }, { k: "db", dir: "BODY", x: 73.3 }, { k: "dt", dir: "T", x: 116.7 },
+    { k: "at", dir: "T", x: 160 }, { k: "ab", dir: "BODY", x: 203.3 }, { k: "aw", dir: "WIDE", x: 246.7 },
+  ];
+  const W = 43.3;
+  const rects = lanes.map(L => {
+    const [pts, won] = d.cells[L.k];
+    const known = L.x < 160 ? d.dKnown : d.aKnown;
+    const share = known > 0 ? pts / known : 0;
+    const op = (0.06 + 0.58 * Math.min(share / 0.5, 1)).toFixed(2);
+    const cx = (L.x + W / 2).toFixed(1);
+    return `<g class="pl-lane" data-lane="${L.k}"><rect x="${L.x}" y="18" width="${W}" height="92" fill="#2e7d32" fill-opacity="${op}"></rect><text class="pl-dir" x="${cx}" y="46">${L.dir}</text><text class="pl-share" x="${cx}" y="70">${pct0(share)}</text><text class="pl-win" x="${cx}" y="88">${pts > 0 ? "won " + pct0(won / pts) : ""}</text></g>`;
+  }).join("");
+  const svg = `<svg viewBox="0 0 320 190" role="img" aria-label="Serve placement court for ${name}"><text class="pl-court" x="95" y="11" text-anchor="middle">DEUCE</text><text class="pl-court" x="225" y="11" text-anchor="middle">AD</text>${rects}<path d="M30 18 H290 V146 H30 Z M30 110 H290 M160 18 V110" fill="none" stroke="#b9c8bb" stroke-width="1.5"></path><line x1="22" y1="18" x2="298" y2="18" stroke="#40513f" stroke-width="3.5"></line><circle cx="160" cy="159" r="3" fill="#5d7263"></circle><text class="pl-court" x="160" y="177" text-anchor="middle">SERVER</text></svg>`;
+  const pro = tour === "WTA" ? "she" : "he";
+  const nm = { dw: ["wide", "goes wide"], db: ["the body", "goes at the body"], dt: ["the T", "goes down the T"],
+               at: ["the T", "goes down the T"], ab: ["the body", "goes at the body"], aw: ["wide", "goes wide"] };
+  const top = (keys, known) => {
+    const k = keys.reduce((a, b) => (d.cells[b][0] > d.cells[a][0] ? b : a));
+    const [pts, won] = d.cells[k];
+    return { k, s: known > 0 ? pts / known : 0, w: pts > 0 ? won / pts : 0 };
+  };
+  const td = top(["dw", "db", "dt"], d.dKnown), ta = top(["at", "ab", "aw"], d.aKnown);
+  const tend = `On the deuce court ${pro} ${nm[td.k][1]} most — ${pct0(td.s)} of serves, winning ${pct0(td.w)} of those points. On the ad court it's ${nm[ta.k][0]} most — ${pct0(ta.s)} of serves, winning ${pct0(ta.w)} of those points.`;
+  return `<section class="panel" id="servePlacement">
+    <h2><button type="button" class="slabel pl-head" data-stat="placement">Serve placement <span class="info" aria-hidden="true">i</span></button></h2>
+    <div class="panel-sub">Where the serve goes, by target lane — share of serves and points won there, from charted matches.</div>
+    <div class="pl-wrap">${svg}</div>
+    <p class="pl-tend">${tend}</p>
+  </section>`;
+}
 /* ---------- grouped rows: head-to-head (value | bar | stat | bar | value) ---------- */
 function compareRowHtml(id, ca, cb){
   const st = STATS[id], v1 = st.val(ca), v2 = st.val(cb);
@@ -986,7 +1068,9 @@ function singleDashboardHtml(name, res){
     ${kpisHtml(name, res)}
     <div class="note">Tap any stat — here or below — for a plain-English explainer with the tour average.</div>
   </section>
-  ${GROUPS.map(([title, sub, ids]) => groupHtml(title, sub, ids, ctx)).join("")}
+  ${GROUPS.slice(0, 2).map(([title, sub, ids]) => groupHtml(title, sub, ids, ctx)).join("")}
+  ${placementHtml(name, res)}
+  ${GROUPS.slice(2).map(([title, sub, ids]) => groupHtml(title, sub, ids, ctx)).join("")}
   <section class="panel">
     <h2>By surface</h2>
     <div class="panel-sub">A surface line appears once a player has five charted matches there; otherwise the all-surface profile is used.</div>
