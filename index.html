@@ -80,8 +80,8 @@
   .score-row .barwrap{flex:1;background:var(--line2);border-radius:6px;height:12px;overflow:hidden}
   .score-row .barfill{height:100%}
   .score-row .pc{flex:0 0 44px;text-align:right;color:var(--dim);font-variant-numeric:tabular-nums}
-  .strip{display:flex;gap:8px;margin-top:6px}
-  .strip .cell{flex:1;background:#fbfdfb;border:1px solid var(--line);
+  .strip{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+  .strip .cell{flex:1 1 30%;background:#fbfdfb;border:1px solid var(--line);
     border-radius:10px;padding:10px;text-align:center}
   .strip .cell.cur{border-color:var(--acc)}
   .strip .cell .s{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
@@ -829,7 +829,11 @@ function updateFreshLine(){
   const thru = tour === "ATP" ? R.meta.atp_results_through : R.meta.wta_results_through;
   const official = tour === "ATP" && D && D.atpOfficialThrough
     ? ` · official match stats through ${formatDate(D.atpOfficialThrough)}` : "";
-  el.textContent = `${tour} data · charted stats through ${formatDate(R.meta.charting[tour])}${official} · tour results through ${formatDate(thru)}`;
+  // Stats freshness comes from the profiles payload itself (charting
+  // corpus + the Live Tennis API forward feed merged into the same
+  // buckets); older payloads without it fall back to the charting date.
+  const statsThru = (D && D.statsThrough && D.statsThrough[tour]) || R.meta.charting[tour];
+  el.textContent = `${tour} data · stats through ${formatDate(statsThru)}${official} · tour results through ${formatDate(thru)}`;
 }
 /* ---------- stat registry: one definition drives both views + the popup ----------
    kind: "pct" (0..1), "frac" (x/y + %), "count" (per-match number),
