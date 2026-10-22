@@ -6,8 +6,10 @@
 <title>Tennis Gap — Player Stats & Match Predictor</title>
 <style>
   :root{
-    --bg:#0f1420; --panel:#171e2e; --panel2:#1d2639; --line:#2a3550;
-    --ink:#e8edf7; --dim:#9aa7c2; --acc:#4ade80; --acc2:#60a5fa; --bad:#f87171;
+    --bg:#f1f4ef; --card:#ffffff; --line:#e1e8e0; --line2:#eef2ec;
+    --ink:#182619; --dim:#5d7263; --acc:#2e7d32; --accSoft:#e6f2e7;
+    --acc2:#4a6fa5; --acc2Soft:#e9eff6; --bad:#c0392b; --warn-bg:#fff8e6;
+    --warn-line:#e6cf8a; --warn-ink:#6b5510;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
@@ -17,112 +19,147 @@
   .sub{color:var(--dim);font-size:13px;margin-bottom:16px}
   .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
   .seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
-  .seg button{background:var(--panel);color:var(--dim);border:0;padding:10px 18px;
+  .seg button{background:var(--card);color:var(--dim);border:0;padding:10px 18px;
     font-size:15px;cursor:pointer;min-height:44px}
-  .seg button.on{background:var(--acc2);color:#fff;font-weight:600}
-  select{background:var(--panel);color:var(--ink);border:1px solid var(--line);
+  .seg button.on{background:var(--acc);color:#fff;font-weight:600}
+  select{background:var(--card);color:var(--ink);border:1px solid var(--line);
     border-radius:9px;padding:10px;font-size:16px;min-height:44px}
-  .tabs{display:flex;gap:8px;margin:6px 0 14px}
-  .tabs button{flex:1;background:var(--panel);color:var(--dim);border:1px solid var(--line);
-    border-radius:10px;padding:12px;font-size:15px;cursor:pointer;min-height:48px}
-  .tabs button.on{background:var(--panel2);color:var(--ink);font-weight:600;border-color:var(--acc2)}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  @media(max-width:560px){.grid2{grid-template-columns:1fr}}
   label{font-size:12px;color:var(--dim);display:block;margin-bottom:5px}
 
   /* --- autocomplete --- */
   .ac{position:relative}
-  .ac input{width:100%;background:var(--panel2);color:var(--ink);border:1px solid var(--line);
+  .ac input{width:100%;background:#fbfdfb;color:var(--ink);border:1px solid var(--line);
     border-radius:9px;padding:12px 46px 12px 12px;font-size:16px;min-height:48px}
   .ac-arrow{position:absolute;right:2px;top:50%;transform:translateY(-50%);
     width:42px;height:42px;background:transparent;border:0;color:var(--dim);
     font-size:17px;cursor:pointer;border-radius:8px}
-  .ac-arrow:active,.ac-arrow:hover{color:var(--ink);background:#27334f}
-  .ac input:focus{outline:2px solid var(--acc2);outline-offset:0}
+  .ac-arrow:active,.ac-arrow:hover{color:var(--ink);background:var(--line2)}
+  .ac input:focus{outline:2px solid var(--acc);outline-offset:0}
   .ac-list{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;
-    background:var(--panel2);border:1px solid var(--acc2);border-radius:10px;
-    max-height:264px;overflow-y:auto;box-shadow:0 10px 30px rgba(0,0,0,.5)}
-  .ac-item{padding:12px 14px;font-size:16px;cursor:pointer;border-bottom:1px solid var(--line);
+    background:var(--card);border:1px solid var(--acc);border-radius:10px;
+    max-height:264px;overflow-y:auto;box-shadow:0 10px 30px rgba(24,38,25,.18)}
+  .ac-item{padding:12px 14px;font-size:16px;cursor:pointer;border-bottom:1px solid var(--line2);
     display:flex;justify-content:space-between;align-items:baseline;gap:12px}
   .ac-item:last-child{border-bottom:0}
-  .ac-item:hover,.ac-item.sel{background:#27334f}
+  .ac-item:hover,.ac-item.sel{background:var(--accSoft)}
   .ac-val{color:var(--dim);font-size:14px;white-space:nowrap}
-  .dirbtn{background:var(--panel);color:var(--ink);border:1px solid var(--line);
-    border-radius:9px;padding:10px 12px;font-size:14px;cursor:pointer;min-height:44px}
   .ac-none{padding:12px 14px;font-size:14px;color:var(--dim)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:560px){.grid2{grid-template-columns:1fr}}
 
-  .go{display:block;width:100%;margin-top:14px;background:var(--acc);color:#08130c;
-    border:0;border-radius:10px;padding:14px;font-size:17px;font-weight:700;cursor:pointer;min-height:52px}
-  .go:active{filter:brightness(1.1)}
-  .go.blue{background:var(--acc2);color:#fff}
-
-  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
-  @media(max-width:640px){table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}}
-  th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right}
+  table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px;
+    font-variant-numeric:tabular-nums}
+  @media(max-width:640px){
+    table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .surf-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .surf-scroll table{display:table;min-width:520px}}
+  th,td{padding:7px 8px;border-bottom:1px solid var(--line2);text-align:right}
   th:first-child,td:first-child{text-align:left;color:var(--dim)}
-  td.edge{color:var(--acc);font-weight:700}
+  tr.current td{background:var(--accSoft);font-weight:700}
   .fresh{color:var(--dim);font-size:12px;margin-top:10px}
   .warn{color:var(--bad);font-size:14px;margin-top:10px}
-  .basics{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:13px;color:var(--dim)}
-  .basics b{color:var(--ink)}
   .pbar{display:flex;height:34px;border-radius:9px;overflow:hidden;margin:12px 0 4px;
     border:1px solid var(--line)}
-  .pbar div{display:flex;align-items:center;justify-content:center;font-weight:700;color:#08130c}
-  .big{font-size:34px;font-weight:800}
+  .pbar div{display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff}
+  .big{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums}
   .vs{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
   .note{color:var(--dim);font-size:12px;margin-top:12px;line-height:1.5}
   .band{color:var(--dim);font-size:13px;margin-top:8px}
   .band b{color:var(--ink)}
-  .why{background:#14263a;border:1px solid var(--acc2);border-radius:10px;
+  .series-line{font-size:15px;font-weight:700;margin-top:8px}
+  .series-line .dim{color:var(--dim);font-weight:600}
+  .why{background:var(--acc2Soft);border:1px solid #c9d8ea;border-radius:10px;
     padding:12px 14px;margin-top:14px;font-size:15px;line-height:1.55}
   .why b{color:var(--acc2)}
   .why div + div{margin-top:6px}
   .scores{margin-top:16px}
   .score-row{display:flex;align-items:center;gap:10px;font-size:14px;margin:5px 0}
   .score-row .nm{flex:0 0 48%}
-  .score-row .barwrap{flex:1;background:var(--panel2);border-radius:6px;height:12px;overflow:hidden}
+  .score-row .barwrap{flex:1;background:var(--line2);border-radius:6px;height:12px;overflow:hidden}
   .score-row .barfill{height:100%}
-  .score-row .pc{flex:0 0 44px;text-align:right;color:var(--dim)}
+  .score-row .pc{flex:0 0 44px;text-align:right;color:var(--dim);font-variant-numeric:tabular-nums}
   .strip{display:flex;gap:8px;margin-top:6px}
-  .strip .cell{flex:1;background:var(--panel2);border:1px solid var(--line);
+  .strip .cell{flex:1;background:#fbfdfb;border:1px solid var(--line);
     border-radius:10px;padding:10px;text-align:center}
   .strip .cell.cur{border-color:var(--acc)}
   .strip .cell .s{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
-  .strip .cell .v{font-size:19px;font-weight:700;margin-top:2px}
+  .strip .cell .v{font-size:19px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
   .strip .cell .f{font-size:11px;color:var(--dim)}
   .topbar{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
   .guides{color:var(--dim);font-size:13px;white-space:nowrap;margin-top:10px}
-  .guides a{color:var(--acc2)}
-  .search-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+  .guides a{color:var(--acc)}
+  .search-card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(24,38,25,.05)}
   .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:14px}
-  .controls .control label{margin-bottom:5px}
   .search-help{color:var(--dim);font-size:13px;margin-top:9px}
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:14px}
-  .panel h2{font-size:19px;margin:0 0 4px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:16px;margin-top:14px;box-shadow:0 1px 3px rgba(24,38,25,.05)}
+  .panel h2{font-size:17px;margin:0 0 4px}
   .panel h3{font-size:15px;margin:0 0 6px}
   .panel-sub{color:var(--dim);font-size:13px;line-height:1.45}
   .player-name{font-size:clamp(26px,5vw,38px);font-weight:800;line-height:1.08;margin:2px 0 6px}
   .match-names{font-size:clamp(21px,4.5vw,30px);font-weight:800;line-height:1.15}
   .meta-line{color:var(--dim);font-size:13px;line-height:1.5}
-  .sample-note{border:1px solid #7c5b16;background:#2b210d;color:#fde68a;border-radius:10px;
-    padding:10px 12px;font-size:13px;line-height:1.45;margin-top:12px}
+  .sample-note{border:1px solid var(--warn-line);background:var(--warn-bg);color:var(--warn-ink);
+    border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.45;margin-top:12px}
+  .sticky-head{position:sticky;top:0;z-index:20;background:var(--bg);
+    padding:10px 2px 8px;font-weight:800;font-size:16px;display:flex;gap:10px;
+    align-items:baseline;flex-wrap:wrap}
+  .sticky-head .sh-meta{color:var(--dim);font-weight:600;font-size:12.5px}
+  .sticky-head .sh-pct{margin-left:auto;color:var(--acc);font-variant-numeric:tabular-nums}
+
+  /* --- KPI tiles (clickable -> stat popup) --- */
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:14px}
   @media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}}
-  .kpi{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px}
+  .kpi{background:#fbfdfb;border:1px solid var(--line);border-radius:12px;padding:12px;
+    text-align:left;font:inherit;color:inherit;cursor:pointer;width:100%}
+  .kpi:hover{border-color:var(--acc)}
   .kpi .k{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
-  .kpi .v{font-size:25px;font-weight:800;margin-top:3px}
+  .kpi .v{font-size:25px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums}
   .kpi .d{font-size:12px;color:var(--dim);margin-top:2px}
   .delta-good{color:var(--acc)!important;font-weight:700}
   .delta-bad{color:var(--bad)!important;font-weight:700}
-  .tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-top:10px}
-  @media(max-width:640px){.tiles{grid-template-columns:repeat(2,1fr)}}
-  .tile{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:11px}
-  .tile .k{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
-  .tile .v{font-size:21px;font-weight:750;margin-top:3px}
-  tr.current td{background:rgba(96,165,250,.10);font-weight:700}
   .rank{color:var(--dim);font-size:11px;font-weight:600;white-space:nowrap}
-  .res-row{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+
+  /* --- grouped stat rows (single view) --- */
+  .srows{margin-top:6px}
+  .srow{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line2)}
+  .srow:last-child{border-bottom:0}
+  .slabel{background:none;border:0;padding:4px 0;font:inherit;font-size:14.5px;color:var(--ink);
+    cursor:pointer;text-align:left;display:inline-flex;align-items:center;gap:7px}
+  .slabel:hover{color:var(--acc)}
+  .info{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;
+    border-radius:50%;border:1px solid var(--dim);color:var(--dim);font-size:10.5px;
+    font-style:normal;font-weight:700;flex:none;line-height:1}
+  .slabel:hover .info{border-color:var(--acc);color:var(--acc)}
+  .sval{margin-left:auto;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums;
+    text-align:right;white-space:nowrap}
+  .ssub{display:block;font-weight:600;color:var(--dim);font-size:11.5px}
+
+  /* --- grouped comparison rows (head-to-head) --- */
+  .crows{margin-top:6px}
+  .crow{display:grid;grid-template-columns:86px minmax(14px,1fr) auto minmax(14px,1fr) 86px;
+    align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line2)}
+  .crow:last-child{border-bottom:0}
+  @media(max-width:560px){.crow{grid-template-columns:64px minmax(8px,1fr) auto minmax(8px,1fr) 64px;gap:6px}}
+  .cval{font-size:14.5px;font-variant-numeric:tabular-nums;color:var(--dim);white-space:nowrap;
+    display:flex;flex-direction:column;justify-content:center}
+  .cval:first-child{text-align:left}
+  .crow .cval:last-child{text-align:right;align-items:flex-end}
+  .cval .cv-pct{font-size:11px;color:var(--dim);font-weight:600}
+  .cval.win{color:var(--ink);font-weight:800}
+  @media(max-width:560px){.cval{font-size:13px}}
+  .cbar{height:7px;background:var(--line2);border-radius:4px;overflow:hidden;display:flex}
+  .cbar i{display:block;height:100%;border-radius:4px;background:#b9c8bb}
+  .cbar.b1{justify-content:flex-end}
+  .cbar.b1 i{background:var(--acc)}
+  .cbar.b2 i{background:var(--acc2)}
+  .clabel{background:none;border:0;padding:4px 2px;font:inherit;font-size:13.5px;color:var(--ink);
+    cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-align:center;justify-content:center}
+  .clabel:hover{color:var(--acc)}
+
+  /* --- results + meetings --- */
+  .res-row{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line2);font-size:14px}
   .res-row:last-child{border-bottom:none}
   .res-wl{font-weight:800;width:16px;flex:none}
   .res-wl.w{color:var(--acc)} .res-wl.l{color:var(--bad)}
@@ -131,12 +168,49 @@
   .res-sc{margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--dim);font-size:12.5px;text-align:right}
   .res-cols{display:grid;grid-template-columns:1fr 1fr;gap:4px 26px}
   @media(max-width:640px){.res-cols{grid-template-columns:1fr}}
+  .mtg-year{font-size:12px;font-weight:800;color:var(--dim);letter-spacing:.07em;
+    text-transform:uppercase;margin:14px 0 2px}
+  .mtg-row{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line2);font-size:14px}
+  .mtg-row:last-child{border-bottom:none}
+  .mtg-main{min-width:0}
+  .mtg-w{font-weight:800}
+  .mtg-sub{color:var(--dim);font-size:12.5px;margin-top:1px}
+  .mtg-sc{margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap;
+    font-weight:650;text-align:right}
+  .chip{display:inline-block;background:var(--accSoft);color:var(--acc);border-radius:20px;
+    padding:1px 8px;font-size:11px;font-weight:700;margin-left:6px;vertical-align:1px;white-space:nowrap}
   details{margin-top:14px}
-  details summary{cursor:pointer;color:var(--acc2);font-size:14px;font-weight:700;padding:8px 0}
+  details summary{cursor:pointer;color:var(--acc);font-size:14px;font-weight:700;padding:8px 0}
   .empty{color:var(--dim);font-size:15px;line-height:1.5;padding:18px 4px 6px}
-  .hidden{display:none}
-  #fatal{background:#3b1620;border:1px solid var(--bad);color:#fecaca;border-radius:10px;
+  .hidden{display:none!important}
+  #fatal{background:#fdeeee;border:1px solid var(--bad);color:#7c241a;border-radius:10px;
     padding:12px 14px;font-size:14px;margin-bottom:14px}
+
+  /* --- stat popup: bottom sheet on mobile, dialog on desktop --- */
+  #statModal{position:fixed;inset:0;z-index:60;background:rgba(18,28,19,.48);
+    display:flex;align-items:flex-end;justify-content:center}
+  #statModal[hidden]{display:none}
+  .sheet{background:var(--card);width:100%;max-width:540px;max-height:88vh;overflow-y:auto;
+    border-radius:18px 18px 0 0;padding:20px 20px 26px;position:relative;
+    animation:sheetUp .18s ease-out}
+  @media(min-width:641px){
+    #statModal{align-items:center;padding:20px}
+    .sheet{border-radius:16px;animation:sheetIn .15s ease-out}
+  }
+  @keyframes sheetUp{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
+  @keyframes sheetIn{from{transform:scale(.97);opacity:.4}to{transform:none;opacity:1}}
+  .sheet h3{margin:0 34px 4px 0;font-size:19px}
+  .sm-close{position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;
+    border:1px solid var(--line);background:#fbfdfb;font-size:19px;cursor:pointer;color:var(--dim)}
+  .sm-close:hover{color:var(--ink);border-color:var(--acc)}
+  .sm-vals{display:flex;gap:8px;margin:10px 0 4px;flex-wrap:wrap}
+  .sm-vals .sv{flex:1;min-width:130px;background:#fbfdfb;border:1px solid var(--line);
+    border-radius:10px;padding:9px 11px}
+  .sm-vals .sv .n{font-size:12px;color:var(--dim)}
+  .sm-vals .sv .x{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:1px}
+  .sm-sec{margin-top:13px}
+  .sm-sec h4{margin:0 0 3px;font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--acc)}
+  .sm-sec p{margin:0;font-size:14.5px;line-height:1.55}
 </style>
 </head>
 <body>
@@ -177,7 +251,7 @@
       <div><label for="p1">Player</label><div class="ac"><input id="p1" autocomplete="off" placeholder="Search a player, or tap ▾…"></div></div>
       <div><label for="p2">Compare with (optional)</label><div class="ac"><input id="p2" autocomplete="off" placeholder="Add another player…"></div></div>
     </div>
-    <div class="search-help">Type a surname or full name. Pick one player for a dashboard, or two for a head-to-head.</div>
+    <div class="search-help">Type a surname or full name. Pick one player for a dashboard, or two for a head-to-head. Tap any stat name for a plain-English explainer.</div>
     <div class="fresh" id="freshLine"></div>
   </section>
 
@@ -191,7 +265,19 @@
     double-fault splits — no simulation noise — and the headline percentage blends it with surface Elo,
     calibrated on a walk-forward backtest of 5,186 tour matches. For the men, profiles for in-form
     players come from official ATP match stats instead of charted matches (through-date in the
-    freshness line above). Stats are informational only, not betting advice.
+    freshness line above). Break-point and hold-point counts are recency-weighted toward recent
+    matches, so the saved/converted fractions are rounded. Stats are informational only, not betting advice.
+  </div>
+</div>
+
+<div id="statModal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="smTitle">
+    <button class="sm-close" id="smClose" type="button" aria-label="Close">×</button>
+    <h3 id="smTitle"></h3>
+    <div class="sm-vals" id="smVals"></div>
+    <div class="sm-sec"><h4>What it is</h4><p id="smWhat"></p></div>
+    <div class="sm-sec"><h4>Why it matters</h4><p id="smWhy"></p></div>
+    <div class="sm-sec"><h4>Context</h4><p id="smCtx"></p></div>
   </div>
 </div>
 
@@ -204,9 +290,9 @@ const D = window.GAP_DATA;
 const R = window.TENNIS_RESULTS || null;
 const H = window.TENNIS_H2H || null;
 if (!D) document.getElementById("fatal").classList.remove("hidden");
-// field indices in each profile array
 const F = {fs_in:0, fs_won:1, df:2, ss_won:3, rpw_fs:4, rpw_ss:5, matches:6, asof:7,
-           aces:8, dfs:9, win:10, ue:11, bpf:12, bps:13, n:14};
+           aces:8, dfs:9, win:10, ue:11, bpf:12, bps:13, n:14,
+           bpfW:15, bpsW:16, bpcW:17, bcvW:18, hpSN:19, hpSW:20, hpRN:21, hpRW:22};
 let tour = "WTA";
 
 const $ = id => document.getElementById(id);
@@ -521,43 +607,12 @@ function attachAutocomplete(input, onPick){
   return { refresh: () => { if (list) open("all"); } };
 }
 
-/* ---------- dashboard: one search, one or two players, hard stats first ---------- */
+/* ---------- dashboard building blocks ---------- */
 const DEFAULT_PLAYERS = { WTA: "Iga Swiatek", ATP: "Jannik Sinner" };
 
 function profileSummary(p){
   const base = D.base[tour], spw = spwOf(p), rpw = rpwOf(p, base);
   return { spw, rpw, hold: gameWinProb(spw), breakPct: gameWinProb(rpw), composite: spw + rpw };
-}
-function statRows(p){
-  const s = profileSummary(p);
-  return [
-    ["Service points won", s.spw], ["Return points won", s.rpw],
-    ["Composite (SPW + RPW)", s.composite],
-    ["Hold % (modeled)", s.hold], ["Break % (modeled)", s.breakPct],
-    ["1st serve in", p[F.fs_in]], ["1st serve won", p[F.fs_won]],
-    ["2nd serve won", p[F.ss_won]], ["Double-fault rate", p[F.df], true],
-    ["Return vs 1st serve", p[F.rpw_fs]], ["Return vs 2nd serve", p[F.rpw_ss]],
-    ["Break points saved", p[F.bps]],
-  ];
-}
-function avgRows(){
-  const a = D.avg[tour], b = D.base[tour];
-  return [
-    ["Service points won", a.spw], ["Return points won", a.rpw],
-    ["Composite (SPW + RPW)", a.spw + a.rpw],
-    ["Hold % (modeled)", gameWinProb(a.spw)], ["Break % (modeled)", gameWinProb(a.rpw)],
-    ["1st serve in", b.fs_in], ["1st serve won", b.fs_won],
-    ["2nd serve won", b.ss_won], ["Double-fault rate", b.df_rate, true],
-    ["Return vs 1st serve", b.rpw_fs], ["Return vs 2nd serve", b.rpw_ss],
-    ["Break points saved", null],
-  ];
-}
-function deltaText(value, avg, inverse){
-  if (value == null || avg == null) return "—";
-  const d = value - avg;
-  if (Math.abs(d) < 0.0005) return "tour average";
-  const favorable = inverse ? d < 0 : d > 0;
-  return `<span class="${favorable ? "delta-good" : "delta-bad"}">${d > 0 ? "+" : "−"}${Math.abs(d * 100).toFixed(1)} pts</span>`;
 }
 function kpiDelta(value, avg){
   const d = value - avg;
@@ -573,12 +628,13 @@ function sampleNote(res){
 function surfaceLabel(){
   return surface() === "All" ? "All surfaces" : surface();
 }
-/* ---------- tour ranks: where a stat stands among qualified players ----------
+/* ---------- tour ranks for the four headline stats ----------
    Pool = players with >=10 charted matches (all surfaces), valued on the
    currently selected surface with the same fallback rules as the dashboard.
    Badges appear only for qualified players, so a 2-match fluke never
-   shows up as "1st in WTA". */
+   shows up as "1st in WTA". Indices: 0 SPW, 1 RPW, 2 Hold, 3 Break. */
 const RANK_MIN = 10;
+const RANK_IDX = { spw: 0, rpw: 1, hold: 2, brk: 3 };
 let _rankCache = {};
 function allMatches(name){
   const a = D.tours[tour].All[name];
@@ -591,7 +647,10 @@ function rankPool(){
   for (const name of Object.keys(D.tours[tour].All)){
     if (allMatches(name) < RANK_MIN) continue;
     const res = getProfile(name);
-    if (res) pool.push(statRows(res.p).map(r => r[1]));
+    if (res){
+      const s = profileSummary(res.p);
+      pool.push([s.spw, s.rpw, s.hold, s.breakPct]);
+    }
   }
   return (_rankCache[key] = pool);
 }
@@ -599,7 +658,7 @@ function ordinal(n){
   const s = ["th", "st", "nd", "rd"], v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
-function rankBadge(rowIdx, value, inverse, name){
+function rankBadge(rowIdx, value, name){
   if (value == null || allMatches(name) < RANK_MIN) return "";
   const pool = rankPool();
   if (pool.length < 20) return "";
@@ -607,7 +666,7 @@ function rankBadge(rowIdx, value, inverse, name){
   for (const vals of pool){
     const v = vals[rowIdx];
     if (v == null) continue;
-    if (inverse ? v < value : v > value) better++;
+    if (v > value) better++;
   }
   return ` <span class="rank">(${ordinal(better + 1)} in ${tour})</span>`;
 }
@@ -663,44 +722,6 @@ function recentResultsPairHtml(na, nb){
     <div class="res-cols"><div><h3>${na}</h3>${recentListHtml(na, 5)}</div><div><h3>${nb}</h3>${recentListHtml(nb, 5)}</div></div>
   </section>`;
 }
-/* ---------- head-to-head history (recorded meetings since 2024) ---------- */
-function h2hHistoryHtml(na, nb){
-  if (!H || !H.tours[tour]) return "";
-  const ms = H.tours[tour][[na, nb].sort().join("|")];
-  if (!ms || !ms.length) return "";
-  const wins = n => ms.filter(m => m.w === n).length;
-  const wa = wins(na), wb = wins(nb);
-  const leader = wa === wb ? null : (wa > wb ? na : nb);
-  const lw = Math.max(wa, wb), ow = Math.min(wa, wb);
-  const series = leader ? `${leader} leads ${lw}–${ow}` : `Tied ${wa}–${wb}`;
-  const splitParts = [];
-  for (const s of ["Hard", "Clay", "Grass", "Carpet"]){
-    const sub = ms.filter(m => m.surf === s);
-    if (!sub.length) continue;
-    const x = sub.filter(m => m.w === (leader || na)).length;
-    splitParts.push(`${s} ${x}–${sub.length - x}`);
-  }
-  const surname = n => n.split(" ").pop();
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const row = m => {
-    const p = String(m.d).split("-").map(Number);
-    const loser = m.w === na ? nb : na;
-    return `<div class="res-row"><div class="res-meta" style="min-width:74px">${months[p[1] - 1]} ${p[0]}</div>
-    <div><span class="res-ev">${m.ev}</span> <span class="res-meta">${m.surf} · ${m.rd}</span></div>
-    <div class="res-sc">${surname(m.w)} d. ${surname(loser)}${m.sc ? " " + m.sc : ""}${m.note ? " · " + m.note : ""}</div></div>`;
-  };
-  const head = ms.slice(0, 6).map(row).join("");
-  const rest = ms.length > 6
-    ? `<details><summary>All ${ms.length} meetings</summary>${ms.slice(6).map(row).join("")}</details>` : "";
-  return `<section class="panel" id="h2hHistory">
-    <h2>Head-to-head history</h2>
-    <div class="panel-sub">Meetings in our records since 2024.${tour === "ATP" ? " Some ATP meetings come from the official-stats archive, which dates matches by tournament — those show month precision." : ""}</div>
-    <div class="series-line" style="font-size:19px;font-weight:700;margin-top:6px">${series}</div>
-    ${splitParts.length ? `<div class="res-meta" style="margin-top:2px">${splitParts.join(" · ")}</div>` : ""}
-    <div style="margin-top:6px">${head}</div>
-    ${rest}
-  </section>`;
-}
 function updateFreshLine(){
   const el = $("freshLine");
   if (!el) return;
@@ -710,36 +731,238 @@ function updateFreshLine(){
     ? ` · official match stats through ${formatDate(D.atpOfficialThrough)}` : "";
   el.textContent = `${tour} data · charted stats through ${formatDate(R.meta.charting[tour])}${official} · tour results through ${formatDate(thru)}`;
 }
+/* ---------- stat registry: one definition drives both views + the popup ----------
+   kind: "pct" (0..1), "frac" (x/y + %), "count" (per-match number),
+   "record" (W–L + %). val(ctx) returns {num, text, sub?} or null (row hidden).
+   ctx = {name, p (profile array), sum (profileSummary)}. */
+function statCtx(name, res){ return { name, p: res.p, sum: profileSummary(res.p) }; }
+function fracVal(won, den){
+  return den > 0 ? { num: won / den, text: `${Math.round(won)}/${Math.round(den)} (${pct(won / den)})` } : null;
+}
+let _tbAvg = {};
+function tbTourAvg(){
+  if (_tbAvg[tour]) return _tbAvg[tour];
+  let w = 0, t = 0;
+  const m = (H && H.tiebreaks && H.tiebreaks[tour]) || {};
+  for (const k in m){ w += m[k][0]; t += m[k][1]; }
+  return (_tbAvg[tour] = t > 0 ? { num: w / t, text: pct(w / t) } : null);
+}
+const STATS = {
+  record: { label: "Matches won", kind: "record",
+    val: c => { const r = H && H.record && H.record[tour] && H.record[tour][c.name];
+      return r ? { num: r[0] / (r[0] + r[1]), text: `${r[0]}–${r[1]} · ${pct0(r[0] / (r[0] + r[1]))}`, sub: "since 2024" } : null; },
+    avg: () => ({ num: 0.5, text: "50%" }),
+    what: "Wins and losses since 2024, from recorded tour results, with the win percentage. Every win is also someone else's loss, so the tour as a whole always averages exactly 50%.",
+    why: "This is the bottom line everything else on the page explains. The serve and return numbers are the machinery; this is what the machinery produces against real draws, week after week.",
+    strong: "65% or better over this window marks a top player; the very best push past 75%." },
+  fs_in: { label: "1st serve %", kind: "pct",
+    val: c => ({ num: c.p[F.fs_in], text: pct(c.p[F.fs_in]) }),
+    avg: () => ({ num: D.base[tour].fs_in, text: pct(D.base[tour].fs_in) }),
+    what: "How often the first serve lands in. Out of every 100 first serves, this many are good — the rest move on to a second serve.",
+    why: "On its own, a surprisingly weak predictor of winning. Landing the first serve only helps if the point gets won too — a cautious, high-percentage serve can be easier to attack than a bigger one that misses more often.",
+    strong: "Most top players sit in the low-to-mid 60s; much higher often means the serve is playing safe." },
+  fs_won: { label: "1st serve points won %", kind: "pct",
+    val: c => ({ num: c.p[F.fs_won], text: pct(c.p[F.fs_won]) }),
+    avg: () => ({ num: D.base[tour].fs_won, text: pct(D.base[tour].fs_won) }),
+    what: "When the first serve does land in, how often the server goes on to win the point.",
+    why: "This is the first serve's real weapon rating. A high number means the serve is doing damage — free points, weak returns, and short rallies played on the server's terms.",
+    strong: "Several points above the tour average usually means a genuinely damaging first serve." },
+  ss_in: { label: "2nd serve in %", kind: "pct",
+    val: c => ({ num: 1 - c.p[F.df], text: pct(1 - c.p[F.df]) }),
+    avg: () => ({ num: 1 - D.base[tour].df_rate, text: pct(1 - D.base[tour].df_rate) }),
+    what: "How often the second serve lands in — 100% minus the double-fault rate. Miss the second serve and the point is lost on the spot.",
+    why: "Mostly a double-fault gauge. Everyone lands the large majority of second serves, so the gaps look small — but every miss is a free point handed over, and they tend to arrive at the worst moments.",
+    strong: "Above 90% is safe; below about 85%, double faults are leaking real points." },
+  ss_won: { label: "2nd serve points won %", kind: "pct",
+    val: c => ({ num: c.p[F.ss_won], text: pct(c.p[F.ss_won]) }),
+    avg: () => ({ num: D.base[tour].ss_won, text: pct(D.base[tour].ss_won) }),
+    what: "When the second serve lands in, how often the server still goes on to win the point.",
+    why: "Arguably the most telling serve stat there is. The second serve is the most attackable ball in tennis — holding your own behind it is what separates the top of the game from everyone else.",
+    strong: "Mid-to-high 50s is elite. Below 45%, returners feast." },
+  spw: { label: "Service points won %", kind: "pct",
+    val: c => ({ num: c.sum.spw, text: pct(c.sum.spw) }),
+    avg: () => ({ num: D.avg[tour].spw, text: pct(D.avg[tour].spw) }),
+    what: "All service points — first and second serves together — and the share the server wins.",
+    why: "The bottom line for the serve, and it drives hold percentage almost directly. Small gaps here compound over the hundreds of service points a player hits every season.",
+    strong: "Each extra point of service points won is worth roughly an extra point and a half of hold percentage." },
+  aces: { label: "Aces / match", kind: "count",
+    val: c => c.p[F.aces] == null ? null : { num: c.p[F.aces], text: c.p[F.aces].toFixed(1) },
+    avg: () => ({ num: D.base[tour].aces_pm, text: D.base[tour].aces_pm.toFixed(1) }),
+    what: "Aces per match — serves the returner cannot even touch — averaged over the player's recent charted matches.",
+    why: "Free points: no rally, no risk after the toss. Aces power easy holds, though they are only one ingredient — plenty of great servers do their damage with the serve-plus-one instead.",
+    strong: "Compare within the tour: aces run far higher in the men's game than the women's." },
+  dfs: { label: "Double faults / match", kind: "count", lower: true,
+    val: c => c.p[F.dfs] == null ? null : { num: c.p[F.dfs], text: c.p[F.dfs].toFixed(1) },
+    avg: () => ({ num: D.base[tour].dfs_pm, text: D.base[tour].dfs_pm.toFixed(1) }),
+    what: "Double faults per match — points where both serves miss and the point is lost without a rally — averaged over recent charted matches.",
+    why: "Points given away for free, and they cluster under pressure. A high count usually signals a risky second serve — sometimes a deliberate trade, taking pace off the return in exchange for the occasional giveaway.",
+    strong: "Fewer is better; the cleanest servers stay near two a match." },
+  hold: { label: "Service games won %", kind: "pct",
+    val: c => ({ num: c.sum.hold, text: pct(c.sum.hold) }),
+    avg: () => { const v = gameWinProb(D.avg[tour].spw); return { num: v, text: pct(v) }; },
+    what: "How often the player wins their service games — 'holds serve'. It is worked out from service points won using standard game maths: win most of your service points and the games follow.",
+    why: "Holding is the job. Breaks decide sets, but the player who holds more reliably controls the scoreboard — and can swing freer on return games, knowing their own serve is safe.",
+    strong: "Holds run lower on the WTA tour, where breaks are more common — always compare within the tour." },
+  rpw: { label: "Return points won %", kind: "pct",
+    val: c => ({ num: c.sum.rpw, text: pct(c.sum.rpw) }),
+    avg: () => ({ num: D.avg[tour].rpw, text: pct(D.avg[tour].rpw) }),
+    what: "Every point where the player is the one returning serve, and the share of those points they win.",
+    why: "The mirror image of service points won. Return strength is what makes good servers uncomfortable — and it is the foundation the break rate is built on.",
+    strong: "Anything above the tour average marks a real returner; the elite sit several points clear of it." },
+  rpw_fs: { label: "Return points won vs 1st serve %", kind: "pct",
+    val: c => ({ num: c.p[F.rpw_fs], text: pct(c.p[F.rpw_fs]) }),
+    avg: () => ({ num: D.base[tour].rpw_fs, text: pct(D.base[tour].rpw_fs) }),
+    what: "Return points won when the opponent's first serve lands in — the hardest returning situation there is, against a full-pace serve placed where the server wants it.",
+    why: "Blunting a landed first serve is the toughest skill in returning. Players who do it well don't just survive big servers — they neutralise them.",
+    strong: "Even reaching the low-to-mid 30s on the WTA tour, or the high 20s on the ATP tour, is strong." },
+  rpw_ss: { label: "Return points won vs 2nd serve %", kind: "pct",
+    val: c => ({ num: c.p[F.rpw_ss], text: pct(c.p[F.rpw_ss]) }),
+    avg: () => ({ num: D.base[tour].rpw_ss, text: pct(D.base[tour].rpw_ss) }),
+    what: "Return points won against second serves — the returner's best chance to attack, against a slower, safer serve.",
+    why: "This is where return games are won. Dominating second serves forces servers to take more risk on their first serve — or accept long, dangerous return games.",
+    strong: "Winning more than half of second-serve return points is tour-leading territory." },
+  brk: { label: "Return games won %", kind: "pct",
+    val: c => ({ num: c.sum.breakPct, text: pct(c.sum.breakPct) }),
+    avg: () => { const v = gameWinProb(D.avg[tour].rpw); return { num: v, text: pct(v) }; },
+    what: "How often the player breaks serve — wins a game when returning. Worked out from return points won using standard game maths.",
+    why: "Breaks are the currency of sets. A strong break rate means constant scoreboard pressure: one break a set is usually enough to take it, and this is the rate that produces them.",
+    strong: "The best returners break in around a third or more of their return games." },
+  bp_saved: { label: "Break points saved", kind: "frac",
+    val: c => fracVal(c.p[F.bpsW], c.p[F.bpfW]),
+    avg: () => ({ num: 1 - D.base[tour].bp_conv, text: pct(1 - D.base[tour].bp_conv) }),
+    what: "Break points faced while serving, and how many were saved — shown as saved out of faced. A break point is a point that loses the service game if the returner wins it. Counts are weighted toward recent matches, so they're rounded.",
+    why: "Saving break points is survival tennis. Honestly, though, over a season this mostly tracks plain serve strength rather than clutch magic — the surest way to save break points is to be hard to break all game long.",
+    strong: "Around 60% is solid; the very best servers live near two-thirds." },
+  bp_conv: { label: "Break points converted", kind: "frac",
+    val: c => fracVal(c.p[F.bcvW], c.p[F.bpcW]),
+    avg: () => ({ num: D.base[tour].bp_conv, text: pct(D.base[tour].bp_conv) }),
+    what: "Break points earned while returning, and how many were converted into actual breaks — shown as converted out of chances earned. Counts are weighted toward recent matches, so they're rounded.",
+    why: "Earning chances is only half the story — this is the cashing-in rate. Converting well turns pressure into scoreboard damage; wasting chances keeps weaker opponents alive.",
+    strong: "The tour converts under half its chances; the best returners cash in about one in two." },
+  bp_faced: { label: "Break points faced / match", kind: "count", lower: true,
+    val: c => c.p[F.bpf] == null ? null : { num: c.p[F.bpf], text: c.p[F.bpf].toFixed(1) },
+    avg: () => ({ num: D.base[tour].bp_faced_pm, text: D.base[tour].bp_faced_pm.toFixed(1) }),
+    what: "How many break points the player's serve faces in an average match — the moments where their service game is one point from being broken.",
+    why: "A pressure gauge for the serve. Facing few break points usually means comfortable holds and scoreboard control; facing many means living dangerously, however good the saving is.",
+    strong: "Fewer is better — elite servers keep this several below the tour average." },
+  hp_conv: { label: "Hold points converted %", kind: "pct",
+    val: c => c.p[F.hpSN] > 0 ? { num: c.p[F.hpSW] / c.p[F.hpSN], text: pct(c.p[F.hpSW] / c.p[F.hpSN]) } : null,
+    avg: () => ({ num: D.base[tour].hp_conv, text: pct(D.base[tour].hp_conv) }),
+    what: "Game points on serve — points that win the service game if the server takes them — and how often the server closes them out instead of slipping back to deuce.",
+    why: "The mirror of saving break points: finishing the job. Players who convert game points cleanly avoid the long deuce-court grind where breaks sneak in.",
+    strong: "Strong closers convert around two-thirds or more of their game points." },
+  hp_saved: { label: "Hold points saved %", kind: "pct",
+    val: c => c.p[F.hpRN] > 0 ? { num: c.p[F.hpRW] / c.p[F.hpRN], text: pct(c.p[F.hpRW] / c.p[F.hpRN]) } : null,
+    avg: () => ({ num: D.base[tour].hp_saved, text: pct(D.base[tour].hp_saved) }),
+    what: "When returning and the server has game point, how often this player denies it and keeps the game alive instead of watching the hold get closed out.",
+    why: "Pure stubbornness, measured. Saving game points drags servers back to deuce, stretches games, and plants doubt — breaks often follow a few points later.",
+    strong: "Saving a third or more of opponents' game points is excellent." },
+  tiebreaks: { label: "Tiebreaks won", kind: "frac",
+    val: c => { const t = H && H.tiebreaks && H.tiebreaks[tour] && H.tiebreaks[tour][c.name];
+      return t ? { num: t[0] / t[1], text: `${t[0]}/${t[1]} (${pct(t[0] / t[1])})`, sub: "since 2024" } : null; },
+    avg: () => tbTourAvg(),
+    what: "Tiebreaks won out of tiebreaks played, counted from match scores since 2024. A tiebreak settles a set tied at 6 games all — first to 7 points, win by 2.",
+    why: "Tiebreaks are near coin-flips that decide whole sets in about ten minutes. A strong record hints at a reliable serve and nerve under pressure — though luck plays a real part, especially in small samples.",
+    strong: "Sustaining 55% or better over many tiebreaks is genuinely good." },
+  winners: { label: "Winners / match", kind: "count",
+    val: c => c.p[F.win] == null ? null : { num: c.p[F.win], text: c.p[F.win].toFixed(1) },
+    avg: () => ({ num: D.base[tour].winners_pm, text: D.base[tour].winners_pm.toFixed(1) }),
+    what: "Clean winning shots per match — points ended outright by this player's shot — averaged over recent charted matches.",
+    why: "A direct read on attacking output: ending points on your own terms instead of waiting for the opponent to miss. It means most read alongside unforced errors — the balance between the two is the real story.",
+    strong: "More winners than unforced errors is elite shot-making." },
+  unforced: { label: "Unforced errors / match", kind: "count", lower: true,
+    val: c => c.p[F.ue] == null ? null : { num: c.p[F.ue], text: c.p[F.ue].toFixed(1) },
+    avg: () => ({ num: D.base[tour].unforced_pm, text: D.base[tour].unforced_pm.toFixed(1) }),
+    what: "Unforced errors per match — misses on shots that weren't under real pressure — averaged over recent charted matches.",
+    why: "The self-inflicted column. Cutting unforced errors is the cheapest way to win more points — but the trade-off is passivity. The art is low errors without going soft.",
+    strong: "Fewer is better, but judge it against the winners count — zero-risk tennis loses too." },
+};
+const GROUPS = [
+  ["Performance", "From recorded tour results since 2024.", ["record"]],
+  ["Service", "", ["fs_in", "fs_won", "ss_in", "ss_won", "spw", "aces", "dfs", "hold"]],
+  ["Return", "", ["rpw", "rpw_fs", "rpw_ss", "brk"]],
+  ["Pressure", "The points that decide games.", ["bp_saved", "bp_conv", "bp_faced", "hp_conv", "hp_saved", "tiebreaks"]],
+  ["Shots", "Per-match averages over recent charted matches.", ["winners", "unforced"]],
+];
+/* ---------- grouped rows: single view ---------- */
+function statRowHtml(id, ctx){
+  const st = STATS[id], v = st.val(ctx);
+  if (!v) return "";
+  const rank = RANK_IDX[id] != null ? rankBadge(RANK_IDX[id], v.num, ctx.name) : "";
+  return `<div class="srow"><button type="button" class="slabel" data-stat="${id}">${st.label}<span class="info" aria-hidden="true">i</span></button><span class="sval">${v.text}${rank}${v.sub ? `<span class="ssub">${v.sub}</span>` : ""}</span></div>`;
+}
+function groupHtml(title, sub, ids, ctx){
+  const rows = ids.map(id => statRowHtml(id, ctx)).join("");
+  if (!rows) return "";
+  return `<section class="panel"><h2>${title}</h2>${sub ? `<div class="panel-sub">${sub}</div>` : ""}<div class="srows">${rows}</div></section>`;
+}
+/* ---------- grouped rows: head-to-head (value | bar | stat | bar | value) ---------- */
+function compareRowHtml(id, ca, cb){
+  const st = STATS[id], v1 = st.val(ca), v2 = st.val(cb);
+  if (!v1 && !v2) return "";
+  const maxC = Math.max(v1 ? v1.num : 0, v2 ? v2.num : 0);
+  const w = v => v == null ? 0 : (st.kind === "count" ? (maxC > 0 ? v.num / maxC * 100 : 0) : v.num * 100);
+  let win = 0;
+  if (v1 && v2 && v1.num !== v2.num) win = (st.lower ? v1.num < v2.num : v1.num > v2.num) ? 1 : -1;
+  // Fraction/record values stack their percentage under the count so the
+  // narrow compare columns never force the row wider than the screen.
+  const valHtml = v => {
+    if (!v) return "—";
+    if (st.kind === "frac"){ const i = v.text.indexOf(" ("); return `${v.text.slice(0, i)}<span class="cv-pct">${v.text.slice(i + 1)}</span>`; }
+    if (st.kind === "record"){ const i = v.text.indexOf(" · "); return `${v.text.slice(0, i)}<span class="cv-pct">${v.text.slice(i + 3)}</span>`; }
+    return v.text;
+  };
+  return `<div class="crow"><span class="cval${win === 1 ? " win" : ""}">${valHtml(v1)}</span><span class="cbar b1"><i style="width:${w(v1).toFixed(1)}%"></i></span><button type="button" class="clabel" data-stat="${id}">${st.label}<span class="info" aria-hidden="true">i</span></button><span class="cbar b2"><i style="width:${w(v2).toFixed(1)}%"></i></span><span class="cval${win === -1 ? " win" : ""}">${valHtml(v2)}</span></div>`;
+}
+function compareGroupHtml(title, sub, ids, ca, cb){
+  const rows = ids.map(id => compareRowHtml(id, ca, cb)).join("");
+  if (!rows) return "";
+  return `<section class="panel"><h2>${title}</h2>${sub ? `<div class="panel-sub">${sub}</div>` : ""}<div class="crows">${rows}</div></section>`;
+}
+/* ---------- stat popup (shared by both views) ---------- */
+let viewCtx = null; // {single: ctx} or {a: ctx, b: ctx} for the current render
+let lastFocus = null;
+function openStat(id){
+  const st = STATS[id];
+  if (!st) return;
+  $("smTitle").textContent = st.label;
+  $("smWhat").textContent = st.what;
+  $("smWhy").textContent = st.why;
+  const av = st.avg ? st.avg() : null;
+  $("smCtx").textContent = `${tour} average: ${av ? av.text : "—"}. ${st.strong}`;
+  const vals = [];
+  if (viewCtx && viewCtx.single){
+    const v = st.val(viewCtx.single);
+    if (v) vals.push([viewCtx.single.name, v.text]);
+  }
+  if (viewCtx && viewCtx.a){
+    for (const c of [viewCtx.a, viewCtx.b]){
+      const v = st.val(c);
+      vals.push([c.name, v ? v.text : "—"]);
+    }
+  }
+  $("smVals").innerHTML = vals.map(([n, x]) =>
+    `<div class="sv"><div class="n">${n}</div><div class="x">${x}</div></div>`).join("");
+  $("smVals").style.display = vals.length ? "flex" : "none";
+  lastFocus = document.activeElement;
+  $("statModal").hidden = false;
+  $("smClose").focus();
+}
+function closeStat(){
+  $("statModal").hidden = true;
+  if (lastFocus && lastFocus.focus) lastFocus.focus();
+}
+/* ---------- single-player dashboard ---------- */
 function kpisHtml(name, res){
   const s = profileSummary(res.p), a = D.avg[tour];
-  const avgHold = gameWinProb(a.spw), avgBreak = gameWinProb(a.rpw);
   const tiles = [
-    ["Hold", s.hold, avgHold, 3], ["Break", s.breakPct, avgBreak, 4],
-    ["Service pts won", s.spw, a.spw, 0], ["Return pts won", s.rpw, a.rpw, 1],
+    ["Hold", "hold", s.hold, gameWinProb(a.spw)],
+    ["Break", "brk", s.breakPct, gameWinProb(a.rpw)],
+    ["Service pts won", "spw", s.spw, a.spw],
+    ["Return pts won", "rpw", s.rpw, a.rpw],
   ];
-  return `<div class="kpis">${tiles.map(([label, v, avg, rowIdx]) =>
-    `<div class="kpi"><div class="k">${label}</div><div class="v">${pct(v)}</div><div class="d">${kpiDelta(v, avg)}${rankBadge(rowIdx, v, false, name)}</div></div>`).join("")}</div>`;
-}
-function profileTableHtml(name, res){
-  const rows = statRows(res.p), av = avgRows();
-  const body = rows.map((row, i) => {
-    const v = row[1], avg = av[i][1], inv = row[2];
-    const fmt = row[0].startsWith("Composite") ? x => x.toFixed(3) : pct;
-    const delta = row[0].startsWith("Composite")
-      ? (avg == null ? "—" : `<span class="${v >= avg ? "delta-good" : "delta-bad"}">${v >= avg ? "+" : "−"}${Math.abs(v - avg).toFixed(3)}</span>`)
-      : deltaText(v, avg, inv);
-    return `<tr><td>${row[0]}</td><td>${v == null ? "—" : fmt(v) + rankBadge(i, v, inv, name)}</td><td>${avg == null ? "—" : fmt(avg)}</td><td>${delta}</td></tr>`;
-  }).join("");
-  return `<table><tr><th>Stat</th><th>${name}</th><th>Tour avg</th><th>Difference</th></tr>${body}</table>`;
-}
-function perMatchTiles(p){
-  const tiles = [
-    ["Aces / match", p[F.aces]], ["Double faults / match", p[F.dfs]],
-    ["Winners / match", p[F.win]], ["Unforced errors / match", p[F.ue]],
-    ["Break pts faced / match", p[F.bpf]],
-  ];
-  return `<div class="tiles">${tiles.map(([label, v]) =>
-    `<div class="tile"><div class="k">${label}</div><div class="v">${v.toFixed(1)}</div></div>`).join("")}</div>`;
+  return `<div class="kpis">${tiles.map(([label, id, v, avg]) =>
+    `<button type="button" class="kpi" data-stat="${id}"><div class="k">${label}</div><div class="v">${pct(v)}</div><div class="d">${kpiDelta(v, avg)}${rankBadge(RANK_IDX[id], v, name)}</div></button>`).join("")}</div>`;
 }
 function surfaceSnapshotHtml(name){
   const rows = ["All", "Hard", "Clay", "Grass"].map(s => {
@@ -748,33 +971,76 @@ function surfaceSnapshotHtml(name){
     const note = res.fb && s !== "All" ? "All-surface profile used" : `${res.p[F.matches]} matches · latest ${formatDate(res.p[F.asof])}`;
     return `<tr class="${surface() === s ? "current" : ""}"><td>${s}</td><td>${pct(sum.hold)}</td><td>${pct(sum.breakPct)}</td><td>${pct(sum.spw)}</td><td>${pct(sum.rpw)}</td><td>${note}</td></tr>`;
   }).join("");
-  return `<table><tr><th>Surface</th><th>Hold</th><th>Break</th><th>Serve pts</th><th>Return pts</th><th>Data</th></tr>${rows}</table>`;
+  return `<div class="surf-scroll"><table><tr><th>Surface</th><th>Hold</th><th>Break</th><th>Serve pts</th><th>Return pts</th><th>Data</th></tr>${rows}</table></div>`;
 }
 function singleDashboardHtml(name, res){
+  const ctx = statCtx(name, res);
+  viewCtx = { single: ctx };
   return `
+  <div class="sticky-head">${name}<span class="sh-meta">${tour} · ${surfaceLabel()}</span></div>
   <section class="panel">
     <div class="panel-sub">${tour} · ${surfaceLabel()}</div>
     <div class="player-name">${name}</div>
     <div class="meta-line">${res.p[F.matches]} ${profileNoun(name, res)} · latest ${formatDate(res.p[F.asof])}${res.fb ? " · all-surface profile used for this surface" : ""}</div>
     ${sampleNote(res)}
     ${kpisHtml(name, res)}
+    <div class="note">Tap any stat — here or below — for a plain-English explainer with the tour average.</div>
   </section>
-  <section class="panel">
-    <h2>Serve &amp; return</h2>
-    <div class="panel-sub">The hard numbers behind the dashboard, with the tour average beside them.</div>
-    ${profileTableHtml(name, res)}
-  </section>
-  <section class="panel">
-    <h2>Per match</h2>
-    <div class="panel-sub">Counting stats from the charted matches. Useful context; the serve and return splits above drive the model.</div>
-    ${perMatchTiles(res.p)}
-  </section>
+  ${GROUPS.map(([title, sub, ids]) => groupHtml(title, sub, ids, ctx)).join("")}
   <section class="panel">
     <h2>By surface</h2>
     <div class="panel-sub">A surface line appears once a player has five charted matches there; otherwise the all-surface profile is used.</div>
     ${surfaceSnapshotHtml(name)}
   </section>
   ${recentResultsHtml(name)}`;
+}
+
+/* ---------- head-to-head history (recorded meetings since 2024) ---------- */
+function seriesInfo(na, nb){
+  if (!H || !H.tours[tour]) return null;
+  const ms = H.tours[tour][[na, nb].sort().join("|")];
+  if (!ms || !ms.length) return null;
+  const wa = ms.filter(m => m.w === na).length, wb = ms.length - wa;
+  const leader = wa === wb ? null : (wa > wb ? na : nb);
+  const text = leader ? `${leader} leads ${Math.max(wa, wb)}–${Math.min(wa, wb)}` : `Tied ${wa}–${wb}`;
+  const splits = [];
+  for (const s of ["Hard", "Clay", "Grass", "Carpet"]){
+    const sub = ms.filter(m => m.surf === s);
+    if (!sub.length) continue;
+    const x = sub.filter(m => m.w === (leader || na)).length;
+    splits.push(`${s} ${x}–${sub.length - x}`);
+  }
+  return { ms, wa, wb, text, splits };
+}
+function meetingsHtml(ms, na, nb){
+  const surname = n => n.split(" ").pop();
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  let html = "", year = null;
+  for (const m of ms){
+    const y = String(m.d).slice(0, 4);
+    if (y !== year){ year = y; html += `<div class="mtg-year">${y}</div>`; }
+    const loser = m.w === na ? nb : na;
+    const p = String(m.d).split("-").map(Number);
+    const dateTxt = tour === "ATP" ? `${months[p[1] - 1]} ${p[0]}` : `${months[p[1] - 1]} ${p[2]}, ${p[0]}`;
+    html += `<div class="mtg-row"><div class="mtg-main"><span class="mtg-w">${surname(m.w)}</span> d. ${surname(loser)}<span class="chip">${m.surf}</span><div class="mtg-sub">${m.ev} · ${m.rd} · ${dateTxt}${m.note ? " · " + m.note : ""}</div></div><div class="mtg-sc">${m.sc || ""}</div></div>`;
+  }
+  return html;
+}
+function h2hHistoryHtml(na, nb){
+  const info = seriesInfo(na, nb);
+  if (!info) return "";
+  const ms = info.ms;
+  const head = meetingsHtml(ms.slice(0, 6), na, nb);
+  const rest = ms.length > 6
+    ? `<details><summary>All ${ms.length} meetings</summary>${meetingsHtml(ms.slice(6), na, nb)}</details>` : "";
+  return `<section class="panel" id="h2hHistory">
+    <h2>Head-to-head history</h2>
+    <div class="panel-sub">Meetings in our records since 2024.${tour === "ATP" ? " Some ATP meetings come from the official-stats archive, which dates matches by tournament — those show month precision." : ""}</div>
+    <div class="series-line">${info.text}</div>
+    ${info.splits.length ? `<div class="res-meta" style="margin-top:2px">${info.splits.join(" · ")}</div>` : ""}
+    <div style="margin-top:6px">${head}</div>
+    ${rest}
+  </section>`;
 }
 
 /* ---------- matchup ---------- */
@@ -802,31 +1068,6 @@ function whyLines(na, nb, dA, dB){
   const lines = [cands[0].text];
   if (cands[1] && cands[1].score > 0.75 && cands[1].k !== cands[0].k) lines.push(cands[1].text);
   return lines;
-}
-function comparisonTableHtml(na, ra, nb, rb){
-  const rows1 = statRows(ra.p), rows2 = statRows(rb.p);
-  const body = rows1.map((row, i) => {
-    const v1 = row[1], v2 = rows2[i][1], inv = row[2];
-    if (v1 == null || v2 == null) return "";
-    const e1 = inv ? v1 < v2 : v1 > v2, e2 = inv ? v2 < v1 : v2 > v1;
-    const fmt = row[0].startsWith("Composite") ? v => v.toFixed(3) : pct;
-    return `<tr><td>${row[0]}</td><td class="${e1 ? "edge" : ""}">${fmt(v1)}${rankBadge(i, v1, inv, na)}</td><td class="${e2 ? "edge" : ""}">${fmt(v2)}${rankBadge(i, v2, inv, nb)}</td></tr>`;
-  }).join("");
-  return `<table><tr><th>Stat</th><th>${na}</th><th>${nb}</th></tr>${body}</table>`;
-}
-function perMatchComparisonHtml(na, ra, nb, rb){
-  const rows = [
-    ["Aces / match", ra.p[F.aces], rb.p[F.aces], false],
-    ["Double faults / match", ra.p[F.dfs], rb.p[F.dfs], true],
-    ["Winners / match", ra.p[F.win], rb.p[F.win], false],
-    ["Unforced errors / match", ra.p[F.ue], rb.p[F.ue], true],
-    ["Break pts faced / match", ra.p[F.bpf], rb.p[F.bpf], true],
-  ];
-  const body = rows.map(([label, v1, v2, inv]) => {
-    const e1 = inv ? v1 < v2 : v1 > v2, e2 = inv ? v2 < v1 : v2 > v1;
-    return `<tr><td>${label}</td><td class="${e1 ? "edge" : ""}">${v1.toFixed(1)}</td><td class="${e2 ? "edge" : ""}">${v2.toFixed(1)}</td></tr>`;
-  }).join("");
-  return `<table><tr><th>Per match</th><th>${na}</th><th>${nb}</th></tr>${body}</table>`;
 }
 function matchupSurfaceHtml(na, nb, bo){
   const base = D.base[tour];
@@ -872,13 +1113,20 @@ function matchupDashboardHtml(na, ra, nb, rb){
   const why = whyLines(na, nb, dA, dB).map(t => `<div>${t}</div>`).join("");
   const limited = Math.min(ra.p[F.matches], rb.p[F.matches]) < 15
     ? `<div class="sample-note"><b>Data check:</b> ${label}. The range matters more than the single number here.</div>` : "";
+  const info = seriesInfo(na, nb);
+  const seriesHtml = info
+    ? `<div class="series-line">Series since 2024: ${info.text}${info.splits.length ? ` <span class="dim">(${info.splits.join(" · ")})</span>` : ""}</div>` : "";
+  const ca = statCtx(na, ra), cb = statCtx(nb, rb);
+  viewCtx = { a: ca, b: cb };
   return `
+  <div class="sticky-head">${na} <span style="color:var(--dim)">vs</span> ${nb}<span class="sh-pct">${pct0(pA)} ${na.split(" ").pop()}</span></div>
   <section class="panel">
     <div class="panel-sub">Head-to-head · ${surfaceLabel()} · Best of ${bo}</div>
     <div class="match-names">${na} <span style="color:var(--dim)">vs</span> ${nb}</div>
     <div class="vs" style="margin-top:12px"><div><div class="big" style="color:var(--acc)">${pct0(pA)}</div><div>${na}</div></div>
     <div style="text-align:right"><div class="big" style="color:var(--acc2)">${pct0(1 - pA)}</div><div>${nb}</div></div></div>
     <div class="pbar"><div style="background:var(--acc);width:${wA}%">${pct0(pA)}</div><div style="background:var(--acc2);width:${100 - wA}%">${pct0(1 - pA)}</div></div>
+    ${seriesHtml}
     <div class="band">Calibrated win probability · likely range for ${na}: <b>${pct0(band.lo)}–${pct0(band.hi)}</b> · ${label}</div>
     <div class="note" style="margin-top:6px">The headline blends the serve model with surface Elo, calibrated on a 5,186-match walk-forward backtest. Range based on past accuracy — in about 4 of 5 similar matchups, the true chance fell inside this range.</div>
     <div class="meta-line" style="margin-top:8px">${freshLine(na, ra)}<br>${freshLine(nb, rb)}</div>
@@ -897,12 +1145,7 @@ function matchupDashboardHtml(na, ra, nb, rb){
     </table>
     ${scoreDetailsHtml(na, nb, dA, dB, bo)}
   </section>
-  <section class="panel">
-    <h2>Player stats</h2>
-    <div class="panel-sub">Each player's own profile on ${surfaceLabel().toLowerCase()}, before the matchup adjustment.</div>
-    ${comparisonTableHtml(na, ra, nb, rb)}
-    ${perMatchComparisonHtml(na, ra, nb, rb)}
-  </section>
+  ${GROUPS.map(([title, sub, ids]) => compareGroupHtml(title, sub, ids, ca, cb)).join("")}
   ${recentResultsPairHtml(na, nb)}
   ${h2hHistoryHtml(na, nb)}
   <section class="panel">
@@ -959,6 +1202,15 @@ $("tourSeg").addEventListener("click", e => {
   if (!$("p1").value.trim() || !names.includes($("p1").value.trim())) $("p1").value = DEFAULT_PLAYERS[tour];
   if ($("p2").value.trim() && !names.includes($("p2").value.trim())) $("p2").value = "";
   renderDashboard();
+});
+$("dashOut").addEventListener("click", e => {
+  const b = e.target.closest("[data-stat]");
+  if (b) openStat(b.dataset.stat);
+});
+$("smClose").addEventListener("click", closeStat);
+$("statModal").addEventListener("click", e => { if (e.target === $("statModal")) closeStat(); });
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !$("statModal").hidden) closeStat();
 });
 if (D){
   $("p1").value = DEFAULT_PLAYERS[tour];
