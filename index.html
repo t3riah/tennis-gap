@@ -74,6 +74,27 @@
     padding:12px 14px;margin-top:14px;font-size:15px;line-height:1.55}
   .why b{color:var(--acc2)}
   .why div + div{margin-top:6px}
+  /* --- explained edges: biggest lever + per-player why blocks --- */
+  .why-cols{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;margin-top:10px}
+  @media(max-width:640px){.why-cols{grid-template-columns:1fr}}
+  .why .why-cols > div{margin-top:0}
+  .why-col h3{font-size:12.5px;margin:0 0 5px;text-transform:uppercase;
+    letter-spacing:.06em;color:var(--acc2)}
+  .why-entry{font-size:14.5px;line-height:1.5}
+  .why-entry + .why-entry{margin-top:8px}
+  .why-ctx{color:#33506e}
+  .wstat{background:none;border:0;padding:0;font:inherit;font-weight:700;color:var(--acc2);
+    cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;text-align:left}
+  .wstat .info{border-color:var(--acc2);color:var(--acc2);margin-left:4px;vertical-align:1px}
+  .wstat:hover{color:var(--acc)}
+  .score-take{font-size:14.5px;margin-top:12px}
+  button.vs-score{background:none;border:0;padding:0;margin:0;font:inherit;
+    color:inherit;cursor:pointer;display:block;width:100%}
+  button.vs-score:hover .a{text-decoration:underline}
+  .vs-score .info.on-dark{border-color:rgba(255,255,255,.55);color:rgba(255,255,255,.85);
+    margin-left:8px;vertical-align:10px}
+  .strip button.cell{font:inherit;color:inherit;cursor:pointer}
+  .strip button.cell:hover{border-color:var(--acc)}
   .scores{margin-top:16px}
   .score-row{display:flex;align-items:center;gap:10px;font-size:14px;margin:5px 0}
   .score-row .nm{flex:0 0 48%}
@@ -853,6 +874,36 @@ function tbTourAvg(){
   for (const k in m){ w += m[k][0]; t += m[k][1]; }
   return (_tbAvg[tour] = t > 0 ? { num: w / t, text: pct(w / t) } : null);
 }
+/* ---------- matchup context helpers (D.ctx) ----------
+   D.ctx[tour] carries, per duel component, the [median, p75] absolute
+   gap across every qualified tour matchup plus the median matchup
+   level — the yardstick the duel popups and the why-blocks scale live
+   gaps against. Missing on older payloads: every helper degrades to
+   null/"" and the copy falls back to match-terms only. */
+function ptTxt(x){ const v = Math.abs(x) * 100; return v < 10 ? v.toFixed(1) : String(Math.round(v)); }
+function ctxOf(){ return (D && D.ctx && D.ctx[tour]) || null; }
+function ctxLvl(comp){
+  const C = ctxOf();
+  return C && C.lvl && C.lvl[comp] != null ? { num: C.lvl[comp], text: pct(C.lvl[comp]) } : null;
+}
+function ctxGapLine(comp){
+  const C = ctxOf();
+  if (!C || !C[comp] || !C.lvl) return null;
+  const [med, p75] = C[comp];
+  return `Typical ${tour} matchup level: ${pct(C.lvl[comp])}. Half of all ${tour} matchups are split by ${ptTxt(med)} points or less on this number, three in four by ${ptTxt(p75)} or less — a wider gap than that sits in the widest quarter of matchups.`;
+}
+function gapWord(gap, comp){
+  const C = ctxOf();
+  if (!C || !C[comp]) return "";
+  const g = Math.abs(gap);
+  return g <= C[comp][0] ? "typical" : g <= C[comp][1] ? "clear" : "wide";
+}
+function gapClause(gap, comp){
+  const C = ctxOf();
+  if (!C || !C[comp]) return "";
+  const [med, p75] = C[comp];
+  return `a ${gapWord(gap, comp)} gap (half of ${tour} matchups sit within ${ptTxt(med)} points here)`;
+}
 const STATS = {
   record: { label: "Matches won", kind: "record",
     val: c => { const r = H && H.record && H.record[tour] && H.record[tour][c.name];
@@ -990,6 +1041,90 @@ const STATS = {
     what: "Unforced errors per match — misses on shots that weren't under real pressure — averaged over recent charted matches.",
     why: "The self-inflicted column. Cutting unforced errors is the cheapest way to win more points — but the trade-off is passivity. The art is low errors without going soft.",
     strong: "Fewer is better, but judge it against the winners count — zero-risk tennis loses too." },
+  /* --- matchup-only stats: the duel lines, the headline, the shape ---
+     val() reads the per-player duel/winprob attachments the matchup
+     view puts on its stat contexts, so these resolve only head-to-head;
+     their context lines scale the number against D.ctx (typical
+     matchup level + typical gap) instead of a tour average. */
+  duel_hold: { label: "Hold % in this matchup", kind: "pct",
+    val: c => c.duel ? { num: c.duel.hold, text: pct(c.duel.hold) } : null,
+    avg: () => ctxLvl("hold"),
+    what: "How often this player would hold serve against THIS opponent. The server's first- and second-serve numbers are blended against this specific returner's return splits — not the tour-average return they were earned against — and the result is run through standard game maths. It is the matchup-adjusted hold rate, not the player's usual one.",
+    why: "Holding is the job, and this is the version of the number that applies tonight. A server can look safe against the field and leaky against one elite returner; this line already knows which returner is standing there.",
+    ctxText: () => ctxGapLine("hold"),
+    strong: "Compare it with the player's ordinary hold rate in the Service group below — the difference is what this particular returner takes away, or gives back." },
+  duel_fs: { label: "1st serve won vs this return", kind: "pct",
+    val: c => c.duel ? { num: c.duel.pFs, text: pct(c.duel.pFs) } : null,
+    avg: () => ctxLvl("pFs"),
+    what: "When this server's first serve lands in against THIS returner, how often the server wins the point. The server's first-serve damage is blended against this returner's first-serve return numbers — the matchup-adjusted figure, not their tour-average line.",
+    why: "First-strike tennis: a landed first serve is the server's best attacking ball, and this shows whether it still does damage against the returner actually facing it. Big servers live or die by whether this number survives contact with an elite return.",
+    ctxText: () => ctxGapLine("pFs"),
+    strong: "A few points of gap here is normal between two tour players; a wide one is a genuine first-strike edge." },
+  duel_ss: { label: "2nd serve won vs this return", kind: "pct",
+    val: c => c.duel ? { num: c.duel.pSs, text: pct(c.duel.pSs) } : null,
+    avg: () => ctxLvl("pSs"),
+    what: "When this server's second serve lands in against THIS returner, how often the server still wins the point — the server's second-serve line blended against this returner's second-serve return. The most attackable ball in tennis, meeting the specific returner who gets to attack it.",
+    why: "The fault line of most matchups. Second serves are where returners feast and where weaker servers bleed points a few at a time — every service game, all match long.",
+    ctxText: () => ctxGapLine("pSs"),
+    strong: "A second-serve line under about 46% in a matchup is a target the returner will keep coming back to." },
+  duel_df: { label: "Double faults in this matchup", kind: "pct", lower: true,
+    val: c => c.duel ? { num: c.duel.dfPoint, text: pct(c.duel.dfPoint) } : null,
+    avg: () => ctxLvl("dfPoint"),
+    what: "Double faults as a share of this server's own service points in this matchup — how many points per 100 served end with both serves missing. The double-fault rate is server-owned (the returner doesn't cause them), so this is the server's own leak, stated per service point rather than per match.",
+    why: "Free points, handed over with no rally played. The count looks small — a point or two per 100 — but double faults cluster at break point and deuce, where a single one can cost a whole service game.",
+    ctxText: () => ctxGapLine("dfPoint"),
+    strong: "Fewer is better; the tour's cleanest servers keep this near 3% of service points or under." },
+  duel_spw: { label: "Service points won in this matchup", kind: "pct",
+    val: c => c.duel ? { num: c.duel.spw, text: pct(c.duel.spw) } : null,
+    avg: () => ctxLvl("spw"),
+    what: "All of this server's service points against THIS returner — first and second serves together — and the share the server wins. Both serve splits are blended against this returner's return splits, so this is the matchup's bottom line for the serve, not the player's tour line.",
+    why: "This single rate is what the matchup hold percentage is built from, and it drives the win probability more than any other number on the page. Small edges here compound over the hundred-plus service points in a match.",
+    ctxText: () => ctxGapLine("spw"),
+    strong: "Each extra point of service points won is worth roughly an extra point and a half of hold percentage." },
+  setscores: { label: "Set-score probabilities", kind: "pct",
+    val: c => { const m = viewCtx && viewCtx.match; if (!m || !m.dist) return null;
+      let ss = 0;
+      for (const k in m.dist){ const [x, y] = k.split("-").map(Number);
+        const mine = c.name === m.na ? x : y, theirs = c.name === m.na ? y : x;
+        if (theirs === 0 && mine > theirs) ss += m.dist[k]; }
+      return { num: ss, text: pct0(ss) + " in straight sets" }; },
+    avg: () => null,
+    what: "The full spread of likely final set scores, worked out exactly from the two serve profiles — every set resolved by the game maths, never by random simulation, so there is no simulation noise. It is built from the raw serve model alone; the headline percentage additionally blends in surface Elo, which is why the two can lean slightly different ways.",
+    why: "The headline says who probably wins; this says how. A favourite who usually closes in straight sets and one who keeps needing a decider can hide behind the same headline number — the shape of the win is different, and so is the risk.",
+    ctxText: () => { const m = viewCtx && viewCtx.match; if (!m || !m.dist) return null;
+      let totA = 0, strA = 0, decA = 0, strB = 0, decB = 0;
+      const need = Math.ceil(m.bo / 2);
+      for (const k in m.dist){ const [x, y] = k.split("-").map(Number); const v = m.dist[k];
+        if (x > y){ totA += v; if (y === 0) strA += v; if (y === need - 1) decA += v; }
+        else { if (x === 0) strB += v; if (x === need - 1) decB += v; } }
+      const favA = totA >= 0.5, fav = favA ? m.na : m.nb, dog = favA ? m.nb : m.na;
+      return `On the raw serve model, ${fav} wins in straight sets ${pct0(favA ? strA : strB)} of the time and needs a deciding set in ${pct0(favA ? decA : decB)}; ${dog} takes the match ${pct0(favA ? 1 - totA : totA)} of the time.`; },
+    strong: "" },
+  winprob: { label: "Win probability", kind: "pct",
+    val: c => c.winprob != null ? { num: c.winprob, text: pct0(c.winprob) } : null,
+    avg: () => ({ num: 0.5, text: "50%" }),
+    what: "The headline chance of winning this match on the selected surface. It blends two reads: an exact serve model built from both players' first-serve, second-serve, return and double-fault splits (20% of the weight), and surface Elo — a results rating for this surface (80%). The recipe was calibrated on a walk-forward backtest of 5,186 tour matches, where the blend out-scored either read on its own.",
+    why: "One number that respects both the matchup mechanics and the track record. The serve model sees how these two games fit together tonight; Elo sees what each player has actually done against real draws on this surface.",
+    ctxText: () => { const m = viewCtx && viewCtx.match;
+      return m && m.band ? `Likely range for ${m.na}: ${pct0(m.band.lo)}–${pct0(m.band.hi)}. The range is calibrated, not decoration — in about 4 of 5 similar matchups, the true chance fell inside a range like this one. Even a strong favourite read loses its share: 65% still drops about one match in three.` : null; },
+    strong: "Treat the range as the honest part of the number; the single figure is its centre, not a promise." },
+  series: { label: "Head-to-head record", kind: "record",
+    val: c => { const m = viewCtx && viewCtx.match; if (!m || !m.info) return null;
+      const w = c.name === m.na ? m.info.wa : m.info.wb, l = m.info.ms.length - w;
+      return { num: m.info.ms.length ? w / m.info.ms.length : 0.5, text: `${w}–${l}`, sub: "since 2024" }; },
+    avg: () => ({ num: 0.5, text: "a level series" }),
+    what: "Meetings between these two in our records since 2024, and who won them. The full list — events, rounds, surfaces and scores — is in the Head-to-head history panel below.",
+    why: "History is context, not destiny: draws, surfaces and form change, and the serve model already prices the players as they are now. But a lopsided series often flags a matchup problem that tour-wide averages smooth away.",
+    strong: "A series of three or more meetings starts to mean something; one or two is mostly noise." },
+  form: { label: "Recent form (last 10)", kind: "record",
+    val: c => { const lst = (R && R.tours[tour] && R.tours[tour][c.name]) || [];
+      if (!lst.length) return null;
+      const l10 = lst.slice(0, 10), w = l10.filter(x => x.w).length;
+      return { num: w / l10.length, text: `${w}–${l10.length - w}`, sub: `last ${l10.length}` }; },
+    avg: () => ({ num: 0.5, text: "50% (5–5)" }),
+    what: "Wins and losses over the player's last ten recorded tour matches, most recent first, from the results archive — all surfaces and events together. The by-surface split lives on the form strip in the Recent results panel.",
+    why: "Form is the shortest-window read on the page. Ten matches is enough to spot a player arriving hot or cold, but small enough that one retirement or one brutal draw can bend it — read it next to the serve numbers, not instead of them.",
+    strong: "8–2 or better over a last ten is a genuine hot streak; 3–7 or worse usually means something is off." },
 };
 const GROUPS = [
   ["Performance", "From recorded tour results since 2024.", ["record"]],
@@ -1095,14 +1230,15 @@ function compareGroupHtml(title, sub, ids, ca, cb){
 /* ---------- stat popup (shared by both views) ---------- */
 let viewCtx = null; // {single: ctx} or {a: ctx, b: ctx} for the current render
 let lastFocus = null;
-function openStat(id){
+function openStat(id, el){
   const st = STATS[id];
   if (!st) return;
   $("smTitle").textContent = st.label;
   $("smWhat").textContent = st.what;
   $("smWhy").textContent = st.why;
   const av = st.avg ? st.avg() : null;
-  $("smCtx").textContent = `${tour} average: ${av ? av.text : "—"}. ${st.strong}`;
+  const custom = st.ctxText ? st.ctxText() : null;
+  $("smCtx").textContent = custom || `${tour} average: ${av ? av.text : "—"}. ${st.strong}`;
   const vals = [];
   if (viewCtx && viewCtx.single){
     const v = st.val(viewCtx.single);
@@ -1113,6 +1249,15 @@ function openStat(id){
       const v = st.val(c);
       vals.push([c.name, v ? v.text : "—"]);
     }
+  }
+  // Surface-strip cells carry their own surface's win probability:
+  // show that surface's split instead of the selected surface's.
+  if (el && el.dataset && el.dataset.wp != null && viewCtx && viewCtx.match){
+    const wp = parseFloat(el.dataset.wp), sn = el.dataset.ws || "";
+    vals.length = 0;
+    vals.push([`${viewCtx.match.na}${sn ? " · " + sn : ""}`, pct0(wp)]);
+    vals.push([`${viewCtx.match.nb}${sn ? " · " + sn : ""}`, pct0(1 - wp)]);
+    $("smCtx").textContent = `Same blend on ${sn || "this surface"}: the serve model from the ${sn || "surface"} profiles at 20%, ${sn || "surface"} Elo at 80% — calibrated exactly like the headline. Read it with the same caution: in about 4 of 5 similar matchups, the true chance fell within a few points of the number shown.`;
   }
   $("smVals").innerHTML = vals.map(([n, x]) =>
     `<div class="sv"><div class="n">${n}</div><div class="x">${x}</div></div>`).join("");
@@ -1221,30 +1366,228 @@ function h2hHistoryHtml(na, nb){
 }
 
 /* ---------- matchup ---------- */
-function whyLines(na, nb, dA, dB){
-  const cands = [];
+/* Explained edges: candidate edges are scored, assigned to the player
+   they favour, and rendered as a claim plus a context clause computed
+   from the live payload — the gap translated into match terms (points
+   per 100 on the component, implied holds, breaks per match) and, for
+   the duel components, scaled against the tour's typical matchup gap
+   from D.ctx. Every key phrase is a stat-popup button, like everywhere
+   else on the page. No figure is written that isn't computed here. */
+function whyBlocks(na, nb, ra, rb, dA, dB){
+  const base = D.base[tour];
   const holdA = gameWinProb(dA.spw), holdB = gameWinProb(dB.spw);
-  const ssWin = dA.pSs >= dB.pSs ? na : nb, ssLose = dA.pSs >= dB.pSs ? nb : na;
-  cands.push({k: "ss", score: Math.abs(dA.pSs - dB.pSs) / 0.08,
-    text: `Second serve is the fault line: ${ssWin} wins ${pct(Math.max(dA.pSs, dB.pSs))} of second-serve points in this matchup, ${ssLose} only ${pct(Math.min(dA.pSs, dB.pSs))}.`});
-  const fsWin = dA.pFs >= dB.pFs ? na : nb, fsLose = dA.pFs >= dB.pFs ? nb : na;
-  cands.push({k: "fs", score: Math.abs(dA.pFs - dB.pFs) / 0.08,
-    text: `First-strike gap: ${fsWin}'s first serve wins ${pct(Math.max(dA.pFs, dB.pFs))} of points against this return, ${fsLose}'s ${pct(Math.min(dA.pFs, dB.pFs))}.`});
+  const btn = (id, text) => `<button type="button" class="wstat" data-stat="${id}">${text}<span class="info" aria-hidden="true">i</span></button>`;
+  const sides = [
+    { key: "a", name: na, d: dA, hold: holdA, p: ra.p, res: ra },
+    { key: "b", name: nb, d: dB, hold: holdB, p: rb.p, res: rb },
+  ];
+  const other = s => s === sides[0] ? sides[1] : sides[0];
+  const short = s => s.name.split(" ").pop();
+  const cands = [];
+  const add = (fav, score, lever, claim, ctx) => cands.push({
+    fav, score, lever,
+    html: `<div class="why-entry">${claim}${ctx ? ` <span class="why-ctx">${ctx}</span>` : ""}</div>`,
+  });
+  const hiSide = get => get(dA) >= get(dB) ? sides[0] : sides[1];
+  // --- the duel pool (the old "read" candidates, now explained) ---
+  {
+    const h = hiSide(d => d.pSs), l = other(h), gap = Math.abs(dA.pSs - dB.pSs);
+    const gc = gapClause(gap, "pSs");
+    add(h.key, gap / 0.08,
+      `the second serve — ${short(h)} wins ${ptTxt(gap)} more points per 100`,
+      `${h.name}'s second serve holds up: ${btn("duel_ss", "second-serve points won")} of ${pct(h.d.pSs)}, against ${pct(l.d.pSs)} for ${l.name}.`,
+      `Worth ${ptTxt(gap)} extra points per 100 second serves${gc ? " — " + gc : ""}.`);
+  }
+  {
+    const h = hiSide(d => d.pFs), l = other(h), gap = Math.abs(dA.pFs - dB.pFs);
+    const gc = gapClause(gap, "pFs");
+    add(h.key, gap / 0.08,
+      `the first serve — ${short(h)} +${ptTxt(gap)} points per 100`,
+      `First-strike gap: ${h.name}'s first serve wins ${btn("duel_fs", pct(h.d.pFs) + " of points")} in this matchup, ${l.name}'s ${pct(l.d.pFs)}.`,
+      `Worth ${ptTxt(gap)} more points per 100 first serves${gc ? " — " + gc : ""}.`);
+  }
   const weakSs = Math.min(dA.pSs, dB.pSs);
   if (weakSs < 0.46){
-    const weak = dA.pSs <= dB.pSs ? na : nb, hunter = dA.pSs <= dB.pSs ? nb : na;
-    cands.push({k: "target", score: (0.50 - weakSs) / 0.05,
-      text: `${weak}'s second serve is a target — ${hunter}'s return holds it to ${pct(weakSs)} of points won.`});
+    const weak = dA.pSs <= dB.pSs ? sides[0] : sides[1], hunter = other(weak);
+    const lvl = ctxOf() && ctxOf().lvl ? ctxOf().lvl.pSs : null;
+    add(hunter.key, (0.50 - weakSs) / 0.05,
+      `${short(weak)}'s second serve — a target for ${short(hunter)}`,
+      `${weak.name}'s second serve is a target — ${hunter.name}'s return holds it to ${btn("duel_ss", pct(weakSs) + " of points won")}.`,
+      lvl != null
+        ? `The typical server wins ${pct(lvl)} of second-serve points in a matchup; this sits ${ptTxt(lvl - weakSs)} points under that, so ${hunter.name} starts most of those points ahead.`
+        : `Second serves are the most attackable ball in the game, and this one gives up more than half its points.`);
   }
-  const dfWin = dA.dfPoint <= dB.dfPoint ? na : nb, dfLose = dA.dfPoint <= dB.dfPoint ? nb : na;
-  cands.push({k: "df", score: Math.abs(dA.dfPoint - dB.dfPoint) / 0.02,
-    text: `Double-fault leak: ${pct(Math.max(dA.dfPoint, dB.dfPoint))} of ${dfLose}'s service points end in a double fault, against ${pct(Math.min(dA.dfPoint, dB.dfPoint))} for ${dfWin}.`});
-  cands.push({k: "hold", score: 0.45 * Math.abs(holdA - holdB) / 0.10,
-    text: `${na} projects to hold ${pct(holdA)} of service games, ${nb} ${pct(holdB)}.`});
+  {
+    const h = dA.dfPoint <= dB.dfPoint ? sides[0] : sides[1], l = other(h);
+    const gap = Math.abs(dA.dfPoint - dB.dfPoint);
+    const gc = gapClause(gap, "dfPoint");
+    add(h.key, gap / 0.02,
+      `double faults — ${short(l)} leaks ${ptTxt(gap)} more per 100`,
+      `Double-fault leak: ${btn("duel_df", pct(l.d.dfPoint) + " of " + l.name + "'s service points")} end in a double fault, against ${pct(h.d.dfPoint)} for ${h.name}.`,
+      `That's ${ptTxt(gap)} free points per 100 service points handed over${gc ? " — " + gc : ""}.`);
+  }
+  {
+    const h = holdA >= holdB ? sides[0] : sides[1], l = other(h);
+    const gap = Math.abs(holdA - holdB);
+    const gc = gapClause(gap, "hold");
+    add(h.key, 0.45 * gap / 0.10,
+      `holding serve — ${short(h)} projects to hold ${pct(h.hold)}`,
+      `${h.name} projects to ${btn("duel_hold", "hold " + pct(h.hold))} of service games in this matchup, ${l.name} ${pct(l.hold)}.`,
+      `About ${ptTxt(gap)} extra holds per 100 service games${gc ? " — " + gc : ""}.`);
+  }
+  // --- break-point pressure (profile pressure lines) ---
+  {
+    const bp = p => ({
+      saved: p[F.bpfW] >= 25 ? p[F.bpsW] / p[F.bpfW] : null,
+      conv: p[F.bpcW] >= 25 ? p[F.bcvW] / p[F.bpcW] : null,
+      facedPm: p[F.bpf],
+      chancesPm: p[F.matches] > 0 ? p[F.bpcW] / p[F.matches] : 0,
+    });
+    const bs = [bp(ra.p), bp(rb.p)], opts = [];
+    for (const kind of ["saved", "conv"]){
+      if (bs[0][kind] == null || bs[1][kind] == null) continue;
+      const fi = bs[0][kind] >= bs[1][kind] ? 0 : 1;
+      opts.push({ kind, delta: Math.abs(bs[0][kind] - bs[1][kind]),
+                  fav: sides[fi], oth: sides[1 - fi], fB: bs[fi], oB: bs[1 - fi] });
+    }
+    opts.sort((x, y) => y.delta - x.delta);
+    const pick = opts[0];
+    if (pick && pick.delta >= 0.04){
+      if (pick.kind === "saved"){
+        const rate = pick.fB.facedPm != null && pick.oB.facedPm != null
+          ? (pick.fB.facedPm + pick.oB.facedPm) / 2 : 0;
+        const per = rate * pick.delta;
+        const ctxBp = per >= 0.2
+          ? `At about ${rate.toFixed(1)} faced per match, worth roughly ${per.toFixed(1)} fewer breaks conceded per match; the tour saves ${pct(1 - base.bp_conv)}.`
+          : per > 0.02
+            ? `The tour saves ${pct(1 - base.bp_conv)}; at about ${rate.toFixed(1)} faced per match, this gap is worth roughly one break every ${Math.max(2, Math.round(1 / per))} matches.`
+            : `The tour saves ${pct(1 - base.bp_conv)} of break points faced.`;
+        add(pick.fav.key, pick.delta / 0.08,
+          `break-point pressure — ${short(pick.fav)} saves ${pct(pick.fB.saved)}`,
+          `Break-point pressure: ${pick.fav.name} ${btn("bp_saved", "saves " + pct(pick.fB.saved) + " of break points faced")}, ${pick.oth.name} ${pct(pick.oB.saved)}.`,
+          ctxBp);
+      } else {
+        const rate = (pick.fB.chancesPm + pick.oB.chancesPm) / 2;
+        const per = rate * pick.delta;
+        const ctxBp = per >= 0.2
+          ? `At roughly ${rate.toFixed(1)} break-point chances earned per match, that conversion gap is worth about ${per.toFixed(1)} extra breaks per match; the tour converts ${pct(base.bp_conv)}.`
+          : per > 0.02
+            ? `The tour converts ${pct(base.bp_conv)} of its chances; at roughly ${rate.toFixed(1)} chances per match, this gap is worth about one extra break every ${Math.max(2, Math.round(1 / per))} matches.`
+            : `The tour converts ${pct(base.bp_conv)} of its break-point chances.`;
+        add(pick.fav.key, pick.delta / 0.08,
+          `break-point conversion — ${short(pick.fav)} cashes ${pct(pick.fB.conv)}`,
+          `Break-point conversion: ${pick.fav.name} ${btn("bp_conv", "converts " + pct(pick.fB.conv) + " of break points earned")}, against ${pct(pick.oB.conv)} for ${pick.oth.name}.`,
+          ctxBp);
+      }
+    }
+  }
+  // --- surface fit (selected surface only, real surface profiles) ---
+  // Anchored against the player's OTHER surfaces, never the pooled
+  // all-surface line (pooling inflates it past every single surface).
+  if (surface() !== "All"){
+    const surf = surface(), pro = tour === "WTA" ? "her" : "his";
+    const comp = p => { const sm = profileSummary(p); return sm.spw + sm.rpw; };
+    const holdOf = p => gameWinProb(profileSummary(p).spw);
+    for (const s of sides){
+      if (s.res.fb) continue;
+      const mine = comp(s.p);
+      const others = ["Hard", "Clay", "Grass"].filter(x => x !== surf)
+        .map(x => getProfile(s.name, x)).filter(r => r && !r.fb);
+      if (!others.length) continue;
+      const oComps = others.map(r => comp(r.p));
+      const isBest = oComps.every(v => mine >= v), isWorst = oComps.every(v => mine <= v);
+      const margin = isBest ? mine - Math.max(...oComps)
+                   : isWorst ? Math.min(...oComps) - mine : 0;
+      if ((!isBest && !isWorst) || margin < 0.008) continue;
+      const holdSurf = holdOf(s.p);
+      const holdElse = others.reduce((a, r) => a + holdOf(r.p), 0) / others.length;
+      if (isBest){
+        add(s.key, margin / 0.04,
+          `${surf.toLowerCase()} fit — ${short(s)}'s best surface`,
+          `${surf} is ${s.name}'s best surface: ${btn("hold", "holds " + pct(holdSurf))} here, against ${pct(holdElse)} across ${pro} other surfaces.`,
+          `Worth about ${ptTxt(holdSurf - holdElse)} extra holds per 100 service games versus ${pro} level elsewhere.`);
+      } else {
+        const o = other(s);
+        add(o.key, margin / 0.04,
+          `${surf.toLowerCase()} fit — ${short(s)} on ${pro} weakest surface`,
+          `${s.name} is on ${pro} weakest surface — ${btn("hold", "holds " + pct(holdSurf))} here against ${pct(holdElse)} across ${pro} other surfaces, which plays into ${o.name}'s hands.`,
+          `About ${ptTxt(holdElse - holdSurf)} fewer holds per 100 service games than ${pro} level elsewhere.`);
+      }
+    }
+  }
+  // --- head-to-head history (>= 3 recorded meetings, a leader) ---
+  const info = seriesInfo(na, nb);
+  if (info && info.ms.length >= 3 && info.wa !== info.wb){
+    const leader = info.wa > info.wb ? sides[0] : sides[1];
+    const lead = Math.max(info.wa, info.wb), trail = Math.min(info.wa, info.wb);
+    const m0 = info.ms[0], p0 = String(m0.d).split("-").map(Number);
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const when = p0.length >= 2 ? `${months[p0[1] - 1]} ${p0[0]}` : String(m0.d).slice(0, 4);
+    const loser = m0.w === na ? nb : na;
+    const surfSplit = surface() !== "All"
+      ? info.splits.find(x => x.startsWith(surface() + " ")) : null;
+    add(leader.key,
+      ((lead - trail) / info.ms.length) * Math.min(1, info.ms.length / 6) / 0.3,
+      `the head-to-head — ${short(leader)} leads ${lead}–${trail}`,
+      `${leader.name} ${btn("series", `leads the series ${lead}–${trail}`)} since 2024.`,
+      surfSplit
+        ? `On ${surface()} the split is ${surfSplit.slice(surface().length + 1)}.`
+        : `Most recent meeting: ${short({ name: m0.w })} beat ${loser.split(" ").pop()} at ${m0.ev} (${when}).`);
+  }
+  // --- recent form (results archive, last 10) ---
+  {
+    const l10 = n => { const lst = (R && R.tours[tour] && R.tours[tour][n]) || []; return lst.slice(0, 10); };
+    const la = l10(na), lb = l10(nb);
+    if (la.length >= 5 && lb.length >= 5){
+      const wa = la.filter(x => x.w).length / la.length;
+      const wb = lb.filter(x => x.w).length / lb.length;
+      if (Math.abs(wa - wb) >= 0.25){
+        const hot = wa > wb ? sides[0] : sides[1], cold = other(hot);
+        const hl = wa > wb ? la : lb, cl = wa > wb ? lb : la;
+        const hw = hl.filter(x => x.w).length, cw = cl.filter(x => x.w).length;
+        let streak = 0;
+        while (streak < hl.length && hl[streak].w === hl[0].w) streak++;
+        add(hot.key, Math.abs(wa - wb) / 0.3,
+          `recent form — ${short(hot)} is ${hw}–${hl.length - hw} over the last ${hl.length}`,
+          `Form favours ${hot.name}: ${btn("form", `${hw}–${hl.length - hw}`)} over the last ${hl.length} recorded matches, against ${cw}–${cl.length - cw} for ${cold.name}.`,
+          hl[0].w && streak >= 3
+            ? `${short(hot)} also carries a ${streak}-match winning streak into this one.`
+            : `Most recent of those: ${short(hot)} ${hl[0].w ? "won" : "lost"} at ${hl[0].ev}.`);
+      }
+    }
+  }
+  // --- select: biggest lever overall, up to 3 entries per player ---
   cands.sort((x, y) => y.score - x.score);
-  const lines = [cands[0].text];
-  if (cands[1] && cands[1].score > 0.75 && cands[1].k !== cands[0].k) lines.push(cands[1].text);
-  return lines;
+  const lever = cands[0];
+  const blocks = { a: [], b: [] };
+  for (const c of cands) if (blocks[c.fav].length < 3) blocks[c.fav].push(c);
+  // A player left with fewer than two entries gets "the path": their
+  // tightest duel component not already covered by their own entries
+  // (the smallest leak to protect, or the one live strength).
+  for (const s of sides){
+    if (blocks[s.key].length >= 2) continue;
+    const o = other(s);
+    const covered = new Set();
+    for (const c of blocks[s.key])
+      for (const m of c.html.matchAll(/data-stat="(duel_[a-z]+)"/g)) covered.add(m[1]);
+    let best = null;
+    for (const [comp, id, label] of [["pFs", "duel_fs", "first serve"],
+                                     ["pSs", "duel_ss", "second serve"],
+                                     ["dfPoint", "duel_df", "double faults"]]){
+      if (covered.has(id)) continue;
+      const gap = Math.abs(s.d[comp] - o.d[comp]);
+      if (!best || gap < best.gap) best = { comp, id, label, gap };
+    }
+    if (!best) continue;
+    const gc = gapClause(best.gap, best.comp);
+    const html = gapWord(best.gap, best.comp) === "wide"
+      ? `<div class="why-entry">The path for ${s.name}: the smallest leak is the ${best.label} — ${btn(best.id, ptTxt(best.gap) + " points")} back${gc ? `, ${gc}` : ""}. Damage limitation starts there.</div>`
+      : `<div class="why-entry">The path for ${s.name}: keep it on the ${best.label} — the gap there is only ${btn(best.id, ptTxt(best.gap) + " points")}${gc ? `, ${gc}` : ""}.</div>`;
+    blocks[s.key].push({ html });
+  }
+  const blockHtml = s => `<div class="why-col"><h3>Why ${s.name} should win</h3>${blocks[s.key].map(c => c.html).join("")}</div>`;
+  return `<div class="why-lever"><b>Biggest lever:</b> ${lever.lever}.</div>`
+       + `<div class="why-cols">${blockHtml(sides[0])}${blockHtml(sides[1])}</div>`;
 }
 function matchupSurfaceHtml(na, nb, bo){
   const base = D.base[tour];
@@ -1254,12 +1597,11 @@ function matchupSurfaceHtml(na, nb, bo){
     const d1 = duel(pa.p, pb.p, base), d2 = duel(pb.p, pa.p, base);
     const pp = displayProb(matchWinProb(d1.spw, d2.spw, bo, true), na, nb, s);
     const fb = pa.fb || pb.fb;
-    return `<div class="cell ${surface() === s ? "cur" : ""}"><div class="s" style="color:${surfInk(s)}">${s}</div><div class="v">${pct0(pp)}</div><div class="f">${na.split(" ").pop()} win %${fb ? " *" : ""}</div></div>`;
+    return `<button type="button" class="cell ${surface() === s ? "cur" : ""}" data-stat="winprob" data-wp="${pp}" data-ws="${s}"><div class="s" style="color:${surfInk(s)}">${s}</div><div class="v">${pct0(pp)}</div><div class="f">${na.split(" ").pop()} win %${fb ? " *" : ""}</div></button>`;
   }).join("");
   return `<div class="strip">${cells}</div><div class="fresh">* All-surface profile used for at least one player on that surface.</div>`;
 }
-function scoreDetailsHtml(na, nb, dA, dB, bo){
-  const dist = matchDist(dA.spw, dB.spw, bo);
+function scoreDetailsHtml(na, nb, dist, bo){
   const setWord = (winnerSets, loserSets) => {
     if (bo === 3) return loserSets === 0 ? "in straight sets" : "in three sets";
     return `in ${winnerSets + loserSets} sets`;
@@ -1271,7 +1613,11 @@ function scoreDetailsHtml(na, nb, dA, dB, bo){
       const aWon = sa > sb, nm = aWon ? na : nb;
       return `<div class="score-row"><div class="nm">${nm} ${setWord(Math.max(sa, sb), Math.min(sa, sb))}</div><div class="barwrap"><div class="barfill" style="width:${Math.max(2, v * 100)}%;background:${aWon ? "var(--acc)" : "var(--acc2)"}"></div></div><div class="pc">${pct0(v)}</div></div>`;
     }).join("");
-  return `<details><summary>Set-score probabilities</summary><div class="scores">${rows}</div></details>`;
+  const [tk, tv] = Object.entries(dist).sort((x, y) => y[1] - x[1])[0];
+  const [tsa, tsb] = tk.split("-").map(Number);
+  const tNm = tsa > tsb ? na : nb;
+  const take = `<div class="score-take">Most likely: <b>${tNm} ${setWord(Math.max(tsa, tsb), Math.min(tsa, tsb))}</b> — ${pct0(tv)}</div>`;
+  return `${take}<details><summary><button type="button" class="slabel" data-stat="setscores">Set-score probabilities<span class="info" aria-hidden="true">i</span></button></summary><div class="scores">${rows}</div></details>`;
 }
 function matchupDashboardHtml(na, ra, nb, rb){
   const base = D.base[tour];
@@ -1287,14 +1633,20 @@ function matchupDashboardHtml(na, ra, nb, rb){
   const wA = Math.max(4, Math.min(96, pA * 100));
   const band = displayBand(pA, thin);
   const label = readLabel(ra.p[F.matches], rb.p[F.matches]);
-  const why = whyLines(na, nb, dA, dB).map(t => `<div>${t}</div>`).join("");
+  const dist = matchDist(dA.spw, dB.spw, bo);
+  const why = whyBlocks(na, nb, ra, rb, dA, dB);
   const limited = Math.min(ra.p[F.matches], rb.p[F.matches]) < 15
     ? `<div class="sample-note"><b>Data check:</b> ${label}. The range matters more than the single number here.</div>` : "";
   const info = seriesInfo(na, nb);
   const seriesHtml = info
     ? `<div class="series-line">Series since 2024: ${info.text}${info.splits.length ? ` <span class="dim">(${info.splits.join(" · ")})</span>` : ""}</div>` : "";
   const ca = statCtx(na, ra), cb = statCtx(nb, rb);
-  viewCtx = { a: ca, b: cb };
+  // Matchup-only popup payloads: the duel lines per serving direction,
+  // the headline split, and the set-score distribution for context copy.
+  ca.duel = { hold: gameWinProb(dA.spw), pFs: dA.pFs, pSs: dA.pSs, dfPoint: dA.dfPoint, spw: dA.spw };
+  cb.duel = { hold: gameWinProb(dB.spw), pFs: dB.pFs, pSs: dB.pSs, dfPoint: dB.dfPoint, spw: dB.spw };
+  ca.winprob = pA; cb.winprob = 1 - pA;
+  viewCtx = { a: ca, b: cb, match: { na, nb, pA, band, info, dist, bo } };
   return `
   <div class="sticky-head">${na} <span style="color:var(--dim)">vs</span> ${nb}<span class="sh-pct">${pct0(pA)} ${na.split(" ").pop()}</span></div>
   <section class="panel">
@@ -1304,7 +1656,7 @@ function matchupDashboardHtml(na, ra, nb, rb){
         <div class="vs-player">${monogramHtml(na, "md")}<div class="vs-name">${na}</div></div>
         <div class="vs-center">
           <div class="vs-cap">Win probability</div>
-          <div class="vs-score"><span class="a">${pct0(pA)}</span><span class="sep">:</span><span class="b">${pct0(1 - pA)}</span></div>
+          <button type="button" class="vs-score" data-stat="winprob" aria-label="Win probability — what this number means"><span class="a">${pct0(pA)}</span><span class="sep">:</span><span class="b">${pct0(1 - pA)}</span><span class="info on-dark" aria-hidden="true">i</span></button>
           ${seriesHtml}
           <div class="band">Calibrated win probability · likely range for ${na}: <b>${pct0(band.lo)}–${pct0(band.hi)}</b> · ${label}</div>
         </div>
@@ -1318,16 +1670,17 @@ function matchupDashboardHtml(na, ra, nb, rb){
   </section>
   <section class="panel">
     <h2>Key edges</h2>
-    <div class="why" style="margin-top:8px"><b>The read:</b> ${why}</div>
-    <table>
+    <div class="panel-sub">The case for each player, built from this matchup's numbers only. Tap a highlighted stat for its plain-English explainer.</div>
+    <div class="why" style="margin-top:8px">${why}</div>
+    <table class="duel-table">
       <tr><th>When serving…</th><th>${na}</th><th>${nb}</th></tr>
-      <tr><td>Hold % in this matchup</td><td>${pct(gameWinProb(dA.spw))}</td><td>${pct(gameWinProb(dB.spw))}</td></tr>
-      <tr><td>1st serve won vs this return</td><td>${pct(dA.pFs)}</td><td>${pct(dB.pFs)}</td></tr>
-      <tr><td>2nd serve won vs this return</td><td>${pct(dA.pSs)}</td><td>${pct(dB.pSs)}</td></tr>
-      <tr><td>Double faults (% of own service pts)</td><td>${pct(dA.dfPoint)}</td><td>${pct(dB.dfPoint)}</td></tr>
-      <tr><td>Service points won</td><td>${pct(dA.spw)}</td><td>${pct(dB.spw)}</td></tr>
+      <tr><td><button type="button" class="slabel" data-stat="duel_hold">Hold % in this matchup<span class="info" aria-hidden="true">i</span></button></td><td>${pct(gameWinProb(dA.spw))}</td><td>${pct(gameWinProb(dB.spw))}</td></tr>
+      <tr><td><button type="button" class="slabel" data-stat="duel_fs">1st serve won vs this return<span class="info" aria-hidden="true">i</span></button></td><td>${pct(dA.pFs)}</td><td>${pct(dB.pFs)}</td></tr>
+      <tr><td><button type="button" class="slabel" data-stat="duel_ss">2nd serve won vs this return<span class="info" aria-hidden="true">i</span></button></td><td>${pct(dA.pSs)}</td><td>${pct(dB.pSs)}</td></tr>
+      <tr><td><button type="button" class="slabel" data-stat="duel_df">Double faults (% of own service pts)<span class="info" aria-hidden="true">i</span></button></td><td>${pct(dA.dfPoint)}</td><td>${pct(dB.dfPoint)}</td></tr>
+      <tr><td><button type="button" class="slabel" data-stat="duel_spw">Service points won<span class="info" aria-hidden="true">i</span></button></td><td>${pct(dA.spw)}</td><td>${pct(dB.spw)}</td></tr>
     </table>
-    ${scoreDetailsHtml(na, nb, dA, dB, bo)}
+    ${scoreDetailsHtml(na, nb, dist, bo)}
   </section>
   ${GROUPS.map(([title, sub, ids]) => compareGroupHtml(title, sub, ids, ca, cb)).join("")}
   ${recentResultsPairHtml(na, nb)}
@@ -1389,7 +1742,12 @@ $("tourSeg").addEventListener("click", e => {
 });
 $("dashOut").addEventListener("click", e => {
   const b = e.target.closest("[data-stat]");
-  if (b) openStat(b.dataset.stat);
+  if (b){
+    // A stat button inside a <summary> opens the popup only — it must
+    // not also toggle the details open or closed.
+    if (b.closest("summary")) e.preventDefault();
+    openStat(b.dataset.stat, b);
+  }
 });
 $("smClose").addEventListener("click", closeStat);
 $("statModal").addEventListener("click", e => { if (e.target === $("statModal")) closeStat(); });
