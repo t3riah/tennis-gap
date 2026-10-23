@@ -511,6 +511,38 @@ function matchDist(pA, pB, bestOf){ // distribution over final set scores, keys 
   }
   return rec(0, 0, true);
 }
+/* ---- Anchored set-score distribution ----
+   The scoreline buckets are anchored to the calibrated headline
+   probability: a single logit tilt delta shifts A's serve-win logit
+   up and B's down until the tilted serve rates imply exactly the
+   headline match probability. The tilt preserves the serve geometry
+   (the relative shape of the scorelines); only the level moves, so
+   the distribution and the headline always tell the same story.
+   When the raw serve model and the headline already agree, delta
+   is ~0 and the distribution is effectively unchanged. */
+function tiltedSpw(pA, pB, bestOf, target){
+  const raw = matchWinProb(pA, pB, bestOf, true);
+  if (Math.abs(raw - target) <= 1e-9) return [pA, pB];
+  const lA = logit(pA), lB = logit(pB);
+  const f = d => matchWinProb(sigmoid(lA + d), sigmoid(lB - d), bestOf, true);
+  let lo = -1, hi = 1, fLo = f(lo), fHi = f(hi);
+  // f is monotone in delta. Widen the bracket only if an extreme
+  // headline falls outside the standard [-1, 1] tilt range.
+  while (fLo > target && lo > -8){ hi = lo; fHi = fLo; lo *= 2; fLo = f(lo); }
+  while (fHi < target && hi < 8){ lo = hi; fLo = fHi; hi *= 2; fHi = f(hi); }
+  let mid = 0;
+  for (let i = 0; i < 60; i++){
+    mid = (lo + hi) / 2;
+    const fm = f(mid);
+    if (Math.abs(fm - target) <= 1e-7) break;
+    if (fm < target) lo = mid; else hi = mid;
+  }
+  return [sigmoid(lA + mid), sigmoid(lB - mid)];
+}
+function anchoredDist(pA, pB, bestOf, target){
+  const [ta, tb] = tiltedSpw(pA, pB, bestOf, target);
+  return matchDist(ta, tb, bestOf);
+}
 /* ---- Display probability: Elo-primary calibrated blend ----
    Validated recipe (walk-forward backtest, 5,186 matches, both fit
    directions): p_display = sigmoid(0.8*logit(p_elo) + 0.2*logit(iso(p_model)))
@@ -1089,7 +1121,7 @@ const STATS = {
         if (theirs === 0 && mine > theirs) ss += m.dist[k]; }
       return { num: ss, text: pct0(ss) + " in straight sets" }; },
     avg: () => null,
-    what: "The full spread of likely final set scores, worked out exactly from the two serve profiles — every set resolved by the game maths, never by random simulation, so there is no simulation noise. It is built from the raw serve model alone; the headline percentage additionally blends in surface Elo, which is why the two can lean slightly different ways.",
+    what: "The full spread of likely final set scores, worked out exactly from the two serve profiles — every set resolved by the game maths, never by random simulation, so there is no simulation noise. The shape of the spread — how the win divides between straight sets and a decider — comes from the serve matchup, while the totals are anchored to the same calibrated headline probability shown at the top: the scorelines are tilted until they add up to that number, so the two always tell the same story.",
     why: "The headline says who probably wins; this says how. A favourite who usually closes in straight sets and one who keeps needing a decider can hide behind the same headline number — the shape of the win is different, and so is the risk.",
     ctxText: () => { const m = viewCtx && viewCtx.match; if (!m || !m.dist) return null;
       let totA = 0, strA = 0, decA = 0, strB = 0, decB = 0;
@@ -1098,7 +1130,7 @@ const STATS = {
         if (x > y){ totA += v; if (y === 0) strA += v; if (y === need - 1) decA += v; }
         else { if (x === 0) strB += v; if (x === need - 1) decB += v; } }
       const favA = totA >= 0.5, fav = favA ? m.na : m.nb, dog = favA ? m.nb : m.na;
-      return `On the raw serve model, ${fav} wins in straight sets ${pct0(favA ? strA : strB)} of the time and needs a deciding set in ${pct0(favA ? decA : decB)}; ${dog} takes the match ${pct0(favA ? 1 - totA : totA)} of the time.`; },
+      return `On this spread, ${fav} wins in straight sets ${pct0(favA ? strA : strB)} of the time and needs a deciding set in ${pct0(favA ? decA : decB)}; ${dog} takes the match ${pct0(favA ? 1 - totA : totA)} of the time.`; },
     strong: "" },
   winprob: { label: "Win probability", kind: "pct",
     val: c => c.winprob != null ? { num: c.winprob, text: pct0(c.winprob) } : null,
@@ -1633,7 +1665,7 @@ function matchupDashboardHtml(na, ra, nb, rb){
   const wA = Math.max(4, Math.min(96, pA * 100));
   const band = displayBand(pA, thin);
   const label = readLabel(ra.p[F.matches], rb.p[F.matches]);
-  const dist = matchDist(dA.spw, dB.spw, bo);
+  const dist = anchoredDist(dA.spw, dB.spw, bo, pA);
   const why = whyBlocks(na, nb, ra, rb, dA, dB);
   const limited = Math.min(ra.p[F.matches], rb.p[F.matches]) < 15
     ? `<div class="sample-note"><b>Data check:</b> ${label}. The range matters more than the single number here.</div>` : "";
