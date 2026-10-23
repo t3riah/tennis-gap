@@ -300,8 +300,8 @@
   }
   @keyframes sheetUp{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
   @keyframes sheetIn{from{transform:scale(.97);opacity:.4}to{transform:none;opacity:1}}
-  .sheet h3{margin:0 34px 4px 0;font-size:19px}
-  .sm-close{position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;
+  .sheet h3{margin:0 50px 4px 0;font-size:19px}
+  .sm-close{position:absolute;top:12px;right:12px;width:44px;height:44px;border-radius:50%;
     border:1px solid var(--line);background:#fbfdfb;font-size:19px;cursor:pointer;color:var(--dim)}
   .sm-close:hover{color:var(--ink);border-color:var(--acc)}
   .sm-vals{display:flex;gap:8px;margin:10px 0 4px;flex-wrap:wrap}
@@ -312,6 +312,31 @@
   .sm-sec{margin-top:13px}
   .sm-sec h4{margin:0 0 3px;font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--acc)}
   .sm-sec p{margin:0;font-size:14.5px;line-height:1.55}
+
+  /* --- Oct 23 mobile pass: clear button, tap targets, safe areas --- */
+  button,input,select{touch-action:manipulation}
+  .ac-clear{position:absolute;right:46px;top:50%;transform:translateY(-50%);
+    width:38px;height:42px;background:transparent;border:0;color:var(--dim);
+    font-size:20px;line-height:1;cursor:pointer;border-radius:8px}
+  .ac-clear:active,.ac-clear:hover{color:var(--ink);background:var(--line2)}
+  .ac-clear[hidden]{display:none}
+  .ac.has-text input{padding-right:88px}
+  .ac-list{max-height:min(264px,42dvh)}
+  .wrap{padding-bottom:calc(40px + env(safe-area-inset-bottom))}
+  .sheet{padding-bottom:calc(26px + env(safe-area-inset-bottom))}
+  .sticky-head .sh-names{min-width:0}
+  @media(max-width:640px){
+    .slabel:not(.pl-head){padding-top:13px;padding-bottom:13px}
+    .clabel{padding-top:13px;padding-bottom:13px}
+    details summary{padding-top:12px;padding-bottom:12px}
+    .guides a{display:inline-block;padding:10px 6px}
+  }
+  @media(max-width:560px){
+    .sticky-head{font-size:14.5px;line-height:1.3}
+    .sticky-head .sh-names{flex:1 1 0%;min-width:0;
+      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .sticky-head .sh-pct{flex:none}
+  }
 </style>
 </head>
 <body>
@@ -349,8 +374,8 @@
       </div>
     </div>
     <div class="grid2">
-      <div><label for="p1">Player</label><div class="ac"><input id="p1" autocomplete="off" placeholder="Search a player, or tap ▾…"></div></div>
-      <div><label for="p2">Compare with (optional)</label><div class="ac"><input id="p2" autocomplete="off" placeholder="Add another player…"></div></div>
+      <div><label for="p1">Player</label><div class="ac"><input id="p1" autocomplete="off" enterkeyhint="search" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Search a player, or tap ▾…"></div></div>
+      <div><label for="p2">Compare with (optional)</label><div class="ac"><input id="p2" autocomplete="off" enterkeyhint="search" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Add another player…"></div></div>
     </div>
     <div class="search-help">Type a surname or full name. Pick one player for a dashboard, or two for a head-to-head. Tap any stat name for a plain-English explainer.</div>
     <div class="fresh" id="freshLine"></div>
@@ -667,6 +692,27 @@ function attachAutocomplete(input, onPick){
   arrow.setAttribute("aria-label", "Show all players");
   arrow.textContent = "▾";
   wrap.appendChild(arrow);
+  const clearBtn = document.createElement("button");
+  clearBtn.type = "button"; clearBtn.className = "ac-clear";
+  clearBtn.setAttribute("aria-label", "Clear");
+  clearBtn.textContent = "×";
+  clearBtn.hidden = true;
+  wrap.appendChild(clearBtn);
+  function syncClear(){
+    const has = input.value.length > 0;
+    clearBtn.hidden = !has;
+    wrap.classList.toggle("has-text", has);
+  }
+  input._syncClear = syncClear;
+  clearBtn.addEventListener("pointerdown", ev => {
+    ev.preventDefault(); // keep focus in the field
+    input.value = "";
+    syncClear();
+    onPick(input.value); // same render path as clearing by hand + Enter
+    syncClear(); // renderDashboard may have promoted the other field's player
+    input.focus();
+    open("all");
+  });
   let list = null, items = [], selIdx = -1, arrowOpen = false;
   function close(){ if (list){ list.remove(); list = null; items = []; selIdx = -1; } arrowOpen = false; }
   function open(mode, viaArrow){
@@ -696,7 +742,7 @@ function attachAutocomplete(input, onPick){
           v.textContent = `${m} charted ${m === 1 ? "match" : "matches"}${m < 5 ? " · limited" : ""}`;
           d.appendChild(v);
         }
-        d.addEventListener("pointerdown", ev => { ev.preventDefault(); pick(e.name); });
+        d.addEventListener("pointerdown", ev => { ev.preventDefault(); pick(e.name, true); });
         list.appendChild(d);
       });
       items = Array.from(list.children);
@@ -712,9 +758,17 @@ function attachAutocomplete(input, onPick){
       }
     }
   }
-  function pick(n){ input.value = n; close(); onPick(n); }
-  input.addEventListener("input", () => open("filter"));
-  input.addEventListener("focus", () => open());
+  function pick(n, viaPointer){
+    input.value = n; close(); syncClear(); onPick(n); syncClear();
+    if (viaPointer){
+      // Touch pick: dismiss the keyboard and bring the result into view.
+      input.blur();
+      const out = document.getElementById("dashOut");
+      if (out) out.scrollIntoView({ block: "start", behavior: "smooth" });
+    }
+  }
+  input.addEventListener("input", () => { syncClear(); open("filter"); });
+  input.addEventListener("focus", () => { syncClear(); open(); });
   input.addEventListener("blur", () => setTimeout(close, 150));
   arrow.addEventListener("pointerdown", ev => {
     ev.preventDefault();
@@ -743,7 +797,13 @@ function attachAutocomplete(input, onPick){
       if (items[selIdx]) items[selIdx].scrollIntoView({block: "nearest"});
     }
   });
-  return { refresh: () => { if (list) open("all"); } };
+  syncClear();
+  return { refresh: () => { if (list) open("all"); }, sync: syncClear };
+}
+// Keep every field's clear button in step after programmatic value sets
+// (renderDashboard swaps/canonicalises, tour switch, initial defaults).
+function syncClearBtns(){
+  for (const inp of document.querySelectorAll(".ac input")) if (inp._syncClear) inp._syncClear();
 }
 
 /* ---------- dashboard building blocks ---------- */
@@ -1327,7 +1387,7 @@ function singleDashboardHtml(name, res){
   const ctx = statCtx(name, res);
   viewCtx = { single: ctx };
   return `
-  <div class="sticky-head">${name}<span class="sh-meta">${tour} · ${surfaceLabel()}</span></div>
+  <div class="sticky-head"><span class="sh-names">${name}</span><span class="sh-meta">${tour} · ${surfaceLabel()}</span></div>
   <section class="panel">
     <div class="band-head">
       <div class="panel-sub">${tour} · ${surfaceLabel()}</div>
@@ -1680,7 +1740,7 @@ function matchupDashboardHtml(na, ra, nb, rb){
   ca.winprob = pA; cb.winprob = 1 - pA;
   viewCtx = { a: ca, b: cb, match: { na, nb, pA, band, info, dist, bo } };
   return `
-  <div class="sticky-head">${na} <span style="color:var(--dim)">vs</span> ${nb}<span class="sh-pct">${pct0(pA)} ${na.split(" ").pop()}</span></div>
+  <div class="sticky-head"><span class="sh-names">${na} <span style="color:var(--dim)">vs</span> ${nb}</span><span class="sh-pct">${pct0(pA)} ${na.split(" ").pop()}</span></div>
   <section class="panel">
     <div class="band-head">
       <div class="panel-sub">Head-to-head · ${surfaceLabel()} · Best of ${bo}</div>
@@ -1730,7 +1790,7 @@ function renderDashboard(){
   if (!D){ showFormat(false); out.innerHTML = ""; return; }
   let n1 = resolveName($("p1").value), n2 = resolveName($("p2").value);
   const raw1 = $("p1").value.trim(), raw2 = $("p2").value.trim();
-  if (!n1 && n2){ n1 = n2; n2 = ""; $("p1").value = n1; $("p2").value = ""; }
+  if (!n1 && n2){ n1 = n2; n2 = ""; $("p1").value = n1; $("p2").value = ""; syncClearBtns(); }
   if (raw1 && !n1){
     showFormat(false);
     out.innerHTML = `<section class="panel"><div class="warn">No charted ${tour} player found for “${raw1}”. Try a surname or another spelling.</div></section>`;
@@ -1739,6 +1799,7 @@ function renderDashboard(){
   if (!n1){
     showFormat(false);
     out.innerHTML = `<section class="panel"><div class="empty">Search for a player above to see the dashboard. Add a second player to turn it into a head-to-head.</div></section>`;
+    syncClearBtns();
     return;
   }
   if (n1) $("p1").value = n1;
@@ -1756,6 +1817,7 @@ function renderDashboard(){
   if (!r2){ showFormat(false); out.innerHTML = singleDashboardHtml(n1, r1); return; }
   showFormat(true);
   out.innerHTML = matchupDashboardHtml(n1, r1, n2, r2);
+  syncClearBtns();
 }
 
 /* ---------- wiring ---------- */
@@ -1770,6 +1832,7 @@ $("tourSeg").addEventListener("click", e => {
   const names = allNames();
   if (!$("p1").value.trim() || !names.includes($("p1").value.trim())) $("p1").value = DEFAULT_PLAYERS[tour];
   if ($("p2").value.trim() && !names.includes($("p2").value.trim())) $("p2").value = "";
+  acP1.sync(); acP2.sync();
   renderDashboard();
 });
 $("dashOut").addEventListener("click", e => {
@@ -1789,6 +1852,7 @@ document.addEventListener("keydown", e => {
 if (D){
   $("p1").value = DEFAULT_PLAYERS[tour];
   $("p2").value = "";
+  acP1.sync(); acP2.sync();
   renderDashboard();
 }
 </script>
