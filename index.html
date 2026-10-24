@@ -280,6 +280,13 @@
   .chip.hard{background:#e4ebf4;color:#3f618c}
   .chip.clay{background:#f6e7dc;color:#a5542c}
   .chip.grass{background:#e6f2e7;color:#2e7d32}
+  /* current tour ranking chip (display only, from D.ranks) */
+  .rank-chip{display:inline-block;background:var(--accSoft);color:var(--green-deep);
+    border:1px solid var(--line);border-radius:20px;padding:1px 9px;font-size:12px;
+    font-weight:800;white-space:nowrap;vertical-align:2px;margin-left:10px}
+  .rank-chip.on-dark{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.35);
+    color:#fff;margin-left:0}
+  .vs-player .rank-chip{margin-left:0}
   details{margin-top:14px}
   details summary{cursor:pointer;color:var(--acc);font-size:14px;font-weight:700;padding:8px 0}
   .empty{color:var(--dim);font-size:15px;line-height:1.5;padding:18px 4px 6px}
@@ -739,7 +746,8 @@ function attachAutocomplete(input, onPick){
           const v = document.createElement("span");
           v.className = "ac-val";
           const m = profile[F.matches];
-          v.textContent = `${m} charted ${m === 1 ? "match" : "matches"}${m < 5 ? " · limited" : ""}`;
+          const rkE = rankEntry(e.name);
+          v.textContent = `${rkE ? `No. ${rkE.rank} · ` : ""}${m} charted ${m === 1 ? "match" : "matches"}${m < 5 ? " · limited" : ""}`;
           d.appendChild(v);
         }
         d.addEventListener("pointerdown", ev => { ev.preventDefault(); pick(e.name, true); });
@@ -851,6 +859,22 @@ function monogramHtml(name, size){
 const RANK_MIN = 10;
 const RANK_IDX = { spw: 0, rpw: 1, hold: 2, brk: 3 };
 let _rankCache = {};
+/* ---------- current tour ranking (display only; never a model input) ----------
+   D.ranks[tour] = {asof, map: {roster name: {rank, asof}}} rides in
+   profiles.js from the tours' weekly publications. Unranked players
+   render nothing — no placeholder. */
+function rankEntry(name){
+  const r = D && D.ranks && D.ranks[tour];
+  return (r && r.map && r.map[name]) || null;
+}
+function rankChipHtml(name, onDark){
+  const e = rankEntry(name);
+  return e ? `<span class="rank-chip${onDark ? " on-dark" : ""}">No. ${e.rank}</span>` : "";
+}
+function rankTag(name){
+  const e = rankEntry(name);
+  return e ? `#${e.rank}` : "";
+}
 function allMatches(name){
   const a = D.tours[tour].All[name];
   return a ? a[F.matches] : 0;
@@ -948,7 +972,9 @@ function updateFreshLine(){
   // corpus + the Live Tennis API forward feed merged into the same
   // buckets); older payloads without it fall back to the charting date.
   const statsThru = (D && D.statsThrough && D.statsThrough[tour]) || R.meta.charting[tour];
-  el.textContent = `${tour} data · stats through ${formatDate(statsThru)}${official} · tour results through ${formatDate(thru)}`;
+  const rk = D && D.ranks && D.ranks[tour];
+  const rkTxt = rk && rk.asof ? ` · rankings as of ${formatDate(rk.asof)}` : "";
+  el.textContent = `${tour} data · stats through ${formatDate(statsThru)}${official} · tour results through ${formatDate(thru)}${rkTxt}`;
 }
 /* ---------- stat registry: one definition drives both views + the popup ----------
    kind: "pct" (0..1), "frac" (x/y + %), "count" (per-match number),
@@ -1205,7 +1231,7 @@ const STATS = {
       const w = c.name === m.na ? m.info.wa : m.info.wb, l = m.info.ms.length - w;
       return { num: m.info.ms.length ? w / m.info.ms.length : 0.5, text: `${w}–${l}`, sub: "since 2024" }; },
     avg: () => ({ num: 0.5, text: "a level series" }),
-    what: "Meetings between these two in our records since 2024, and who won them. The full list — events, rounds, surfaces and scores — is in the Head-to-head history panel below.",
+    what: "Meetings between these two in our records since 2024, and who won them. The full list — events, rounds, surfaces and scores — is in the Head-to-head card near the top of this page.",
     why: "History is context, not destiny: draws, surfaces and form change, and the serve model already prices the players as they are now. But a lopsided series often flags a matchup problem that tour-wide averages smooth away.",
     strong: "A series of three or more meetings starts to mean something; one or two is mostly noise." },
   form: { label: "Recent form (last 10)", kind: "record",
@@ -1387,11 +1413,11 @@ function singleDashboardHtml(name, res){
   const ctx = statCtx(name, res);
   viewCtx = { single: ctx };
   return `
-  <div class="sticky-head"><span class="sh-names">${name}</span><span class="sh-meta">${tour} · ${surfaceLabel()}</span></div>
+  <div class="sticky-head"><span class="sh-names">${name}${rankTag(name) ? " " + rankTag(name) : ""}</span><span class="sh-meta">${tour} · ${surfaceLabel()}</span></div>
   <section class="panel">
     <div class="band-head">
       <div class="panel-sub">${tour} · ${surfaceLabel()}</div>
-      <div class="head-id">${monogramHtml(name, "lg")}<div><div class="player-name">${name}</div>
+      <div class="head-id">${monogramHtml(name, "lg")}<div><div class="player-name">${name}${rankChipHtml(name, true)}</div>
       <div class="meta-line">${res.p[F.matches]} ${profileNoun(name, res)} · latest ${formatDate(res.p[F.asof])}${res.fb ? " · all-surface profile used for this surface" : ""}</div></div></div>
     </div>
     ${sampleNote(res)}
@@ -1435,21 +1461,28 @@ function meetingsHtml(ms, na, nb){
     if (y !== year){ year = y; html += `<div class="mtg-year">${y}</div>`; }
     const loser = m.w === na ? nb : na;
     const p = String(m.d).split("-").map(Number);
-    const dateTxt = tour === "ATP" ? `${months[p[1] - 1]} ${p[0]}` : `${months[p[1] - 1]} ${p[2]}, ${p[0]}`;
+    const dateTxt = `${months[p[1] - 1]} ${p[0]}`;
     html += `<div class="mtg-row"><div class="mtg-main"><span class="mtg-w">${surname(m.w)}</span> d. ${surname(loser)}<span class="chip ${surfCls(m.surf)}">${m.surf}</span><div class="mtg-sub">${m.ev} · ${m.rd} · ${dateTxt}${m.note ? " · " + m.note : ""}</div></div><div class="mtg-sc">${m.sc || ""}</div></div>`;
   }
   return html;
 }
-function h2hHistoryHtml(na, nb){
+function meetingsCardHtml(na, nb){
   const info = seriesInfo(na, nb);
-  if (!info) return "";
+  const sub = `Meetings in our records since 2024.${tour === "ATP" ? " Some ATP meetings come from the official-stats archive, which dates matches by tournament — those show month precision." : ""}`;
+  if (!info){
+    return `<section class="panel" id="h2hHistory">
+    <h2>Head-to-head</h2>
+    <div class="panel-sub">${sub}</div>
+    <div class="series-line" style="margin-top:6px">No recorded meetings since 2024 — first meeting in our data.</div>
+  </section>`;
+  }
   const ms = info.ms;
-  const head = meetingsHtml(ms.slice(0, 6), na, nb);
-  const rest = ms.length > 6
-    ? `<details><summary>All ${ms.length} meetings</summary>${meetingsHtml(ms.slice(6), na, nb)}</details>` : "";
+  const head = meetingsHtml(ms.slice(0, 4), na, nb);
+  const rest = ms.length > 4
+    ? `<details><summary>All ${ms.length} meetings</summary>${meetingsHtml(ms.slice(4), na, nb)}</details>` : "";
   return `<section class="panel" id="h2hHistory">
-    <h2>Head-to-head history</h2>
-    <div class="panel-sub">Meetings in our records since 2024.${tour === "ATP" ? " Some ATP meetings come from the official-stats archive, which dates matches by tournament — those show month precision." : ""}</div>
+    <h2>Head-to-head</h2>
+    <div class="panel-sub">${sub}</div>
     <div class="series-line">${info.text}</div>
     ${info.splits.length ? `<div class="res-meta" style="margin-top:2px">${info.splits.join(" · ")}</div>` : ""}
     <div style="margin-top:6px">${head}</div>
@@ -1740,19 +1773,19 @@ function matchupDashboardHtml(na, ra, nb, rb){
   ca.winprob = pA; cb.winprob = 1 - pA;
   viewCtx = { a: ca, b: cb, match: { na, nb, pA, band, info, dist, bo } };
   return `
-  <div class="sticky-head"><span class="sh-names">${na} <span style="color:var(--dim)">vs</span> ${nb}</span><span class="sh-pct">${pct0(pA)} ${na.split(" ").pop()}</span></div>
+  <div class="sticky-head"><span class="sh-names">${na}${rankTag(na) ? " " + rankTag(na) : ""} <span style="color:var(--dim)">vs</span> ${nb}${rankTag(nb) ? " " + rankTag(nb) : ""}</span><span class="sh-pct">${pct0(pA)} ${na.split(" ").pop()}</span></div>
   <section class="panel">
     <div class="band-head">
       <div class="panel-sub">Head-to-head · ${surfaceLabel()} · Best of ${bo}</div>
       <div class="vs-grid">
-        <div class="vs-player">${monogramHtml(na, "md")}<div class="vs-name">${na}</div></div>
+        <div class="vs-player">${monogramHtml(na, "md")}<div><div class="vs-name">${na}</div>${rankChipHtml(na, true)}</div></div>
         <div class="vs-center">
           <div class="vs-cap">Win probability</div>
           <button type="button" class="vs-score" data-stat="winprob" aria-label="Win probability — what this number means"><span class="a">${pct0(pA)}</span><span class="sep">:</span><span class="b">${pct0(1 - pA)}</span><span class="info on-dark" aria-hidden="true">i</span></button>
           ${seriesHtml}
           <div class="band">Calibrated win probability · likely range for ${na}: <b>${pct0(band.lo)}–${pct0(band.hi)}</b> · ${label}</div>
         </div>
-        <div class="vs-player r">${monogramHtml(nb, "md")}<div class="vs-name">${nb}</div></div>
+        <div class="vs-player r">${monogramHtml(nb, "md")}<div><div class="vs-name">${nb}</div>${rankChipHtml(nb, true)}</div></div>
       </div>
     </div>
     <div class="pbar"><div style="background:linear-gradient(90deg,#1d4a26,#2e7d32 60%,#459a4c);width:${wA}%">${pct0(pA)}</div><div style="background:linear-gradient(90deg,#84a5c7,#4a6fa5 60%,#3c5a85);width:${100 - wA}%">${pct0(1 - pA)}</div></div>
@@ -1760,6 +1793,7 @@ function matchupDashboardHtml(na, ra, nb, rb){
     <div class="meta-line" style="margin-top:8px">${freshLine(na, ra)}<br>${freshLine(nb, rb)}</div>
     ${limited}
   </section>
+  ${meetingsCardHtml(na, nb)}
   <section class="panel">
     <h2>Key edges</h2>
     <div class="panel-sub">The case for each player, built from this matchup's numbers only. Tap a highlighted stat for its plain-English explainer.</div>
@@ -1774,9 +1808,9 @@ function matchupDashboardHtml(na, ra, nb, rb){
     </table>
     ${scoreDetailsHtml(na, nb, dist, bo)}
   </section>
+  ${compareGroupHtml("Key stats", "The four numbers that decide most matches — each player's own profile on the selected surface.", ["hold", "brk", "spw", "rpw"], ca, cb)}
   ${GROUPS.map(([title, sub, ids]) => compareGroupHtml(title, sub, ids, ca, cb)).join("")}
   ${recentResultsPairHtml(na, nb)}
-  ${h2hHistoryHtml(na, nb)}
   <section class="panel">
     <h2>Same matchup, other surfaces</h2>
     ${matchupSurfaceHtml(na, nb, bo)}
