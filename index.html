@@ -83,6 +83,12 @@
   .why-entry{font-size:14.5px;line-height:1.5}
   .why-entry + .why-entry{margin-top:8px}
   .why-ctx{color:#33506e}
+  /* --- the verdict: computed closing narrative inside the why box --- */
+  .why-verdict{margin-top:14px;border-top:1px solid #c9d8ea;padding-top:11px}
+  .why .why-verdict{margin-top:14px}
+  .why-verdict h3{font-size:12.5px;margin:0 0 5px;text-transform:uppercase;
+    letter-spacing:.06em;color:var(--acc2)}
+  .why-verdict p{margin:0;font-size:14.5px;line-height:1.55}
   .wstat{background:none;border:0;padding:0;font:inherit;font-weight:700;color:var(--acc2);
     cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;text-align:left}
   .wstat .info{border-color:var(--acc2);color:var(--acc2);margin-left:4px;vertical-align:1px}
@@ -1498,7 +1504,7 @@ function meetingsCardHtml(na, nb){
    the duel components, scaled against the tour's typical matchup gap
    from D.ctx. Every key phrase is a stat-popup button, like everywhere
    else on the page. No figure is written that isn't computed here. */
-function whyBlocks(na, nb, ra, rb, dA, dB){
+function whyBlocks(na, nb, ra, rb, dA, dB, vx){
   const base = D.base[tour];
   const holdA = gameWinProb(dA.spw), holdB = gameWinProb(dB.spw);
   const btn = (id, text) => `<button type="button" class="wstat" data-stat="${id}">${text}<span class="info" aria-hidden="true">i</span></button>`;
@@ -1708,11 +1714,63 @@ function whyBlocks(na, nb, ra, rb, dA, dB){
     const html = gapWord(best.gap, best.comp) === "wide"
       ? `<div class="why-entry">The path for ${s.name}: the smallest leak is the ${best.label} — ${btn(best.id, ptTxt(best.gap) + " points")} back${gc ? `, ${gc}` : ""}. Damage limitation starts there.</div>`
       : `<div class="why-entry">The path for ${s.name}: keep it on the ${best.label} — the gap there is only ${btn(best.id, ptTxt(best.gap) + " points")}${gc ? `, ${gc}` : ""}.</div>`;
-    blocks[s.key].push({ html });
+    blocks[s.key].push({ html, lever: `the ${best.label}, where the gap is ${ptTxt(best.gap)} points` });
   }
-  const blockHtml = s => `<div class="why-col"><h3>Why ${s.name} should win</h3>${blocks[s.key].map(c => c.html).join("")}</div>`;
+  const blockHtml = s => `<div class="why-col"><h3>The case for ${s.name}</h3>${blocks[s.key].map(c => c.html).join("")}</div>`;
+  // --- the verdict: a computed closing narrative. It commits to the
+  // headline favourite with confidence wording banded to the displayed
+  // probability, runs the mechanism through the biggest lever and the
+  // favourite's top case entry, keeps the underdog's strongest entry as
+  // a genuine path, reads the shape off the ANCHORED set-score
+  // distribution, and says plainly when the raw serve model disagrees
+  // with the headline (the call then rests on the blend, per backtest).
+  let verdictHtml = "";
+  if (vx && vx.dist){
+    const favIsA = vx.pA >= 0.5;
+    const fav = favIsA ? sides[0] : sides[1], dog = favIsA ? sides[1] : sides[0];
+    const pFav = favIsA ? vx.pA : 1 - vx.pA;
+    // Band on the DISPLAYED (rounded) percentage, so the wording is a
+    // pure function of the number on the card.
+    const pPct = Math.round(pFav * 100);
+    const phrase = pPct >= 80 ? "takes this decisively"
+      : pPct >= 65 ? "should win with room to spare"
+      : pPct >= 55 ? "gets the nod" : "edges a coin flip";
+    const topLeverOf = s => { const c = blocks[s.key].find(x => x.lever); return c ? c.lever : null; };
+    const mech = [];
+    if (lever && lever.fav === fav.key) mech.push(lever.lever);
+    const favTop = topLeverOf(fav);
+    if (favTop && !mech.includes(favTop)) mech.push(favTop);
+    const dogTop = topLeverOf(dog);
+    let favSS = 0, favDec = 0, decAll = 0;
+    const maxSets = vx.bo === 5 ? 5 : 3;
+    for (const [k, v] of Object.entries(vx.dist)){
+      const [sa, sb] = k.split("-").map(Number);
+      const tot = sa + sb, aWon = sa > sb;
+      if (tot === maxSets) decAll += v;
+      if (aWon === favIsA){
+        if (Math.min(sa, sb) === 0) favSS += v;
+        if (tot === maxSets) favDec += v;
+      }
+    }
+    const shape = favSS >= favDec
+      ? `The likeliest shape is a straight-sets win — ${pct0(favSS)} of the spread for ${fav.name}, against ${pct0(favDec)} in a decider; about ${pct0(decAll)} of all outcomes go the distance.`
+      : `The likeliest shape is a decider — ${fav.name} takes ${pct0(favDec)} of the spread in the last set, against ${pct0(favSS)} in straight sets; about ${pct0(decAll)} of all outcomes go the distance.`;
+    const parts = [
+      `${fav.name} ${phrase} — ${pct0(pFav)} on the calibrated headline.`,
+      mech.length ? `It runs through ${mech.join(", and through ")}.` : "",
+      dogTop ? `${dog.name}'s path is real: ${dogTop} — if that holds up, this flips.` : "",
+      shape,
+    ];
+    const favModel = vx.pModel >= 0.5 ? na : nb;
+    if (favModel !== fav.name)
+      parts.push(`The serve numbers alone favour ${dog.name} — the call rests on the calibrated blend and the results rating, which the backtest says to trust.`);
+    if (vx.thin)
+      parts.push(`Data is thin here, so the range matters more than the single number.`);
+    verdictHtml = `<div class="why-verdict"><h3>The verdict</h3><p>${parts.filter(Boolean).join(" ")}</p></div>`;
+  }
   return `<div class="why-lever"><b>Biggest lever:</b> ${lever.lever}.</div>`
-       + `<div class="why-cols">${blockHtml(sides[0])}${blockHtml(sides[1])}</div>`;
+       + `<div class="why-cols">${blockHtml(sides[0])}${blockHtml(sides[1])}</div>`
+       + verdictHtml;
 }
 function matchupSurfaceHtml(na, nb, bo){
   const base = D.base[tour];
@@ -1759,7 +1817,7 @@ function matchupDashboardHtml(na, ra, nb, rb){
   const band = displayBand(pA, thin);
   const label = readLabel(ra.p[F.matches], rb.p[F.matches]);
   const dist = anchoredDist(dA.spw, dB.spw, bo, pA);
-  const why = whyBlocks(na, nb, ra, rb, dA, dB);
+  const why = whyBlocks(na, nb, ra, rb, dA, dB, { pA, pModel, dist, bo, thin });
   const limited = Math.min(ra.p[F.matches], rb.p[F.matches]) < 15
     ? `<div class="sample-note"><b>Data check:</b> ${label}. The range matters more than the single number here.</div>` : "";
   const info = seriesInfo(na, nb);
