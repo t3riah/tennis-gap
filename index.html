@@ -815,14 +815,12 @@ function attachAutocomplete(input, onPick){
   return { refresh: () => { if (list) open("all"); }, sync: syncClear };
 }
 // Keep every field's clear button in step after programmatic value sets
-// (renderDashboard swaps/canonicalises, tour switch, initial defaults).
+// (renderDashboard swaps/canonicalises, tour switch).
 function syncClearBtns(){
   for (const inp of document.querySelectorAll(".ac input")) if (inp._syncClear) inp._syncClear();
 }
 
 /* ---------- dashboard building blocks ---------- */
-const DEFAULT_PLAYERS = { WTA: "Iga Swiatek", ATP: "Jannik Sinner" };
-
 function profileSummary(p){
   const base = D.base[tour], spw = spwOf(p), rpw = rpwOf(p, base);
   return { spw, rpw, hold: gameWinProb(spw), breakPct: gameWinProb(rpw), composite: spw + rpw };
@@ -1922,7 +1920,7 @@ $("tourSeg").addEventListener("click", e => {
   tour = b.dataset.tour;
   document.querySelectorAll("#tourSeg button").forEach(x => x.classList.toggle("on", x === b));
   const names = allNames();
-  if (!$("p1").value.trim() || !names.includes($("p1").value.trim())) $("p1").value = DEFAULT_PLAYERS[tour];
+  if (!$("p1").value.trim() || !names.includes($("p1").value.trim())) $("p1").value = "";
   if ($("p2").value.trim() && !names.includes($("p2").value.trim())) $("p2").value = "";
   acP1.sync(); acP2.sync();
   renderDashboard();
@@ -1942,7 +1940,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape" && !$("statModal").hidden) closeStat();
 });
 if (D){
-  $("p1").value = DEFAULT_PLAYERS[tour];
+  $("p1").value = "";
   $("p2").value = "";
   acP1.sync(); acP2.sync();
   renderDashboard();
